@@ -1,5 +1,6 @@
 import pygame
 import settings
+from solver import solve
 
 pygame.font.init()
 
