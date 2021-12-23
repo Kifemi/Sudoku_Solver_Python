@@ -4,26 +4,26 @@ import settings
 def solve(puzzle):
     temp_puzzle = puzzle
 
-    # Create a list of all possible values for each cell
-    # possible_values = []
-    # for i in range(9):
-    #     for j in range(9):
-    #         possible_values.append(get_possible_values(puzzle, i, j))
     run = True
 
     while run:
         possible_values = [[get_possible_values(temp_puzzle, i, j) for j in range(9)] for i in range(9)]
         # for value in possible_values:
-            # print(f"\t {value}")
+        #     print(f"\t {value}")
 
         # Fill unique values
         if fill_unique(possible_values, temp_puzzle):
+            continue
+
+        # Check if possible value appears once in a 3x3 square
+        if fill_square(possible_values, temp_puzzle):
             continue
 
         # Check if possible value appears once in a row
         if fill_row(possible_values, temp_puzzle):
             continue
 
+        # Check if possible value appears once in a column
         if fill_col(possible_values, temp_puzzle):
             continue
 
@@ -51,18 +51,15 @@ def fill_unique(possible_values, temp_puzzle):
 
 def fill_row(possible_values, temp_puzzle):
     for i in range(9):
-        # Check if a possible value appears only once in a row
         for j in range(9):
             if possible_values[i][j] is not None:
                 value_set = possible_values[i][j]
                 for index, row_set in enumerate(possible_values[i]):
                     if row_set is not None and index != j:
                         value_set = value_set.difference(row_set)
-                # print(value_set, i, j)
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
                     print(f"row loop: {i}, {j}, {temp_puzzle[i][j]}")
-                    # row_value_filled = True
                     return True
     return False
 
@@ -71,7 +68,6 @@ def fill_col(possible_values, temp_puzzle):
     for i in range(9):
         for j in range(9):
             value_set = [possible_values[j][i] for j in range(9)]
-            # print(f"\t\t {value_set}")
             if value_set[j] is not None:
                 for index, col_set in enumerate(value_set):
                     if col_set is not None and value_set[j] is not None and index != j:
@@ -82,6 +78,27 @@ def fill_col(possible_values, temp_puzzle):
                     return True
     return False
 
+
+def fill_square(possible_values, temp_puzzle):
+    for n in range(3):
+        for m in range(3):
+            value_set = []
+            for i in range(3*n, 3*n + 3):
+                for j in range(3*m, 3*m + 3):
+                    if possible_values[i][j] is not None:
+                        value_set.append(possible_values[i][j])
+                    else:
+                        value_set.append(None)
+            for k in range(9):
+                value_set_temp = value_set.copy()
+                for index, square_set in enumerate(value_set_temp):
+                    if square_set is not None and value_set_temp[k] is not None and index != k:
+                        value_set_temp[k] = value_set_temp[k].difference(square_set)
+                if value_set_temp[k] is not None and len(value_set_temp[k]) == 1:
+                    temp_puzzle[n*3 + k // 3][m*3 + k % 3] = next(iter(value_set_temp[k]))
+                    print(f"square loop: {n*3 + k // 3}, {m*3 + k % 3}, {temp_puzzle[n*3 + k // 3][m*3 + k % 3]}")
+                    return True
+    return False
 
 
 def get_possible_values(puzzle, row, col):
@@ -130,12 +147,8 @@ def check_solution(puzzle):
     return is_correct
 
 
-# print(fill_col(None, settings.puzzle))
-for row in solve(settings.puzzle_easy):
+solution = solve(settings.puzzle)
+for row in solution:
     print(row)
 
-print(check_solution(solve(settings.puzzle_easy)))
-# print(solve(settings.puzzle_easy))
-# print(settings.puzzle)
-# print(solve(settings.puzzle))
-# print(settings.puzzle)
+print(check_solution(solution))
