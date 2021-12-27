@@ -9,7 +9,7 @@ class Board:
     def __init__(self):
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = settings.puzzle
+        self.puzzle = settings.puzzle_hard
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
 
@@ -44,6 +44,17 @@ class Board:
         self.selected_cell = (row, col)
         # print(self.selected_cell)
         self.draw_cells(screen)
+
+    def update_cells(self):
+        for i in range(9):
+            for j in range(9):
+                self.cells[i][j].value = self.puzzle[i][j]
+
+    def clear_cells(self):
+        for i in range(9):
+            for j in range(9):
+                if not self.cells[i][j].has_initial_value:
+                    self.cells[i][j].value = 0
 
 
 class Cell:
@@ -150,6 +161,11 @@ def run_game():
             if event.type == pygame.KEYDOWN:
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board, screen)
+                if event.key == pygame.K_SPACE:
+                    board.puzzle = solve(board.puzzle)
+                    board.update_cells()
+                if event.key == pygame.K_DELETE:
+                    board.clear_cells()
 
         board.draw_cells(screen)
         board.draw_lines(screen)

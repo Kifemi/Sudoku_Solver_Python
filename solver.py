@@ -1,8 +1,9 @@
 import settings
+import time
 
 
 def solve(puzzle):
-    temp_puzzle = puzzle
+    temp_puzzle = puzzle.copy()
 
     run = True
 
@@ -29,6 +30,8 @@ def solve(puzzle):
 
         run = False
 
+    backtracking(temp_puzzle)
+
     return temp_puzzle
 
 
@@ -44,7 +47,7 @@ def fill_unique(possible_values, temp_puzzle):
                 # If only one possible value in cell, fill it
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
-                    print(f"first loop: {i}, {j}, {temp_puzzle[i][j]}")
+                    # print(f"first loop: {i}, {j}, {temp_puzzle[i][j]}")
                     return True
     return False
 
@@ -59,7 +62,7 @@ def fill_row(possible_values, temp_puzzle):
                         value_set = value_set.difference(row_set)
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
-                    print(f"row loop: {i}, {j}, {temp_puzzle[i][j]}")
+                    # print(f"row loop: {i}, {j}, {temp_puzzle[i][j]}")
                     return True
     return False
 
@@ -74,7 +77,7 @@ def fill_col(possible_values, temp_puzzle):
                         value_set[j] = value_set[j].difference(col_set)
                 if len(value_set[j]) == 1:
                     temp_puzzle[j][i] = next(iter(value_set[j]))
-                    print(f"col loop: {j}, {i}, {temp_puzzle[j][i]}")
+                    # print(f"col loop: {j}, {i}, {temp_puzzle[j][i]}")
                     return True
     return False
 
@@ -96,9 +99,53 @@ def fill_square(possible_values, temp_puzzle):
                         value_set_temp[k] = value_set_temp[k].difference(square_set)
                 if value_set_temp[k] is not None and len(value_set_temp[k]) == 1:
                     temp_puzzle[n*3 + k // 3][m*3 + k % 3] = next(iter(value_set_temp[k]))
-                    print(f"square loop: {n*3 + k // 3}, {m*3 + k % 3}, {temp_puzzle[n*3 + k // 3][m*3 + k % 3]}")
+                    # print(f"square loop: {n*3 + k // 3}, {m*3 + k % 3}, {temp_puzzle[n*3 + k // 3][m*3 + k % 3]}")
                     return True
     return False
+
+
+def backtracking(puzzle):
+    empty_cell = check_if_empty(puzzle)
+    if empty_cell:
+        row, col = empty_cell
+        # print(f"row: {row}, col: {col}")
+    else:
+        return True
+    for k in range(1, 10):
+        if is_possible(puzzle, k, row, col):
+            puzzle[row][col] = k
+            # for row_temp in puzzle:
+            #     print(row_temp)
+            # print()
+            if backtracking(puzzle):
+                return True
+            # print(f"row2: {row}, col2: {col}")
+            puzzle[row][col] = 0
+
+    return False
+
+
+def is_possible(puzzle, value, row, col):
+    possible = True
+    for i in range(9):
+        if puzzle[row][i] == value:
+            return False
+        if puzzle[i][col] == value:
+            return False
+    x = row // 3
+    y = col // 3
+    for i in range(3 * x, 3 * x + 3):
+        for j in range(3 * y, 3 * y + 3):
+            if puzzle[i][j] == value:
+                return False
+    return possible
+
+
+def check_if_empty(puzzle):
+    for i in range(9):
+        for j in range(9):
+            if puzzle[i][j] == 0:
+                return i, j
 
 
 def get_possible_values(puzzle, row, col):
@@ -147,8 +194,14 @@ def check_solution(puzzle):
     return is_correct
 
 
-solution = solve(settings.puzzle)
-for row in solution:
-    print(row)
+# solution = solve(settings.puzzle_hard)
+# for row in solution:
+#     print(row)
 
-print(check_solution(solution))
+
+# print(f"is possible: {is_possible(settings.puzzle, 7, 7, 8)}")
+# solution = solve(settings.puzzle)
+# for row in solution:
+#     print(row)
+#
+# print(check_solution(solution))
