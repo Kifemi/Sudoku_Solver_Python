@@ -69,6 +69,7 @@ class Board:
         # Draw the cells to update the screen.
         self.draw_cells(screen)
 
+    # TODO: at the moment doesn't do anything
     def update_cells(self):
         for i in range(9):
             for j in range(9):
@@ -94,13 +95,24 @@ class Board:
 
 class Cell:
     def __init__(self, value, row, col, width, height):
-        self.value = value
+        self._value = value
         self.row = row
         self.col = col
         self.cell_width = width // 9
         self.cell_height = height // 9
         self.is_selected = False
         self.has_initial_value = True if self.value else False
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, x):
+        if 0 < x < 10:
+            self._value = x
+        else:
+            self._value = 0
 
     def draw_cell(self, screen) -> None:
         """
@@ -163,7 +175,7 @@ def handle_arrow_keys(event, board, screen):
     board.select_cell(row, col, screen)
 
 
-def handle_number_keys(event, board, screen):
+def handle_number_keys(event, board):
     value = 0
     if event.key == pygame.K_1:
         value = 1
@@ -183,55 +195,17 @@ def handle_number_keys(event, board, screen):
         value = 8
     if event.key == pygame.K_9:
         value = 9
-    if event.key == pygame.K_0:
+    if event.key == pygame.K_0 or event.key == pygame.K_BACKSPACE:
         value = 10
-    if event.key == pygame.K_BACKSPACE:
-        value = 10
-    # if 0 < value <= 10:
-    #     row = board.selected_cell[0]
-    #     col = board.selected_cell[1]
-    #     if not board.cells[row][col].has_initial_value:
-    #         if 0 < value < 10:
-    #             possible = is_possible(board.puzzle, value, row, col)
-    #             print(possible)
-    #             if possible:
-    #                 board.cells[row][col].value = value
-    #         else:
-    #             board.cells[row][col].value = 0
-        # if not board.cells[row][col].has_initial_value:
-        #     if value == 10:
-        #         board.cells[row][col].value = 0
-        #     else:
-        #         board.cells[row][col].value = value
-
-    if value and not board.cells[board.selected_cell[0]][board.selected_cell[1]].has_initial_value:
-        if value == 10:
-            board.cells[board.selected_cell[0]][board.selected_cell[1]].value = 0
-        else:
-            # print(board.puzzle)
-            board.cells[board.selected_cell[0]][board.selected_cell[1]].value = value
-
-    # if 0 < value <= 10:
-    #     row = board.selected_cell[0]
-    #     col = board.selected_cell[1]
-    #     if board.cells[row][col].has_initial_value:
-    #         return
-    #     # previous_value = board.cells[row][col].value
-    #     # print(row, col, value)
-    #     # print(possible)
-    #     if value == 10:
-    #         board.cells[row][col].value = 0
-    #         return
-    #     possible = is_possible(board.puzzle, value, row, col)
-    #     print(board.puzzle)
-    #     if possible:
-    #         board.cells[row][col].value = value
-    #     # if not board.cells[row][col].has_initial_value and possible:
-    #     #     if value == 10:
-    #     #         board.cells[row][col].value = 0
-    #     #     else:
-    #     #         board.cells[row][col].value = value
-
+    if value != 0:
+        row = board.selected_cell[0]
+        col = board.selected_cell[1]
+        if not board.cells[row][col].has_initial_value:
+            possible = True
+            if value != 10:
+                possible = is_possible(board.puzzle, value, row, col)
+            if possible:
+                board.cells[row][col].value = value
 
 
 def draw_game_info(screen):
@@ -261,12 +235,10 @@ def run_game():
                     handle_mouse_click(board, screen)
             if event.type == pygame.KEYDOWN:
                 handle_arrow_keys(event, board, screen)
-                handle_number_keys(event, board, screen)
+                handle_number_keys(event, board)
                 if event.key == pygame.K_s:
-                    # board.puzzle = solve(board.puzzle)
                     # TODO: check if solver return proper solution
                     board.show_solution(solve(board.puzzle))
-                    # board.update_cells()
                 if event.key == pygame.K_DELETE:
                     board.clear_cells()
                 if event.key == pygame.K_ESCAPE:
