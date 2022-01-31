@@ -1,6 +1,6 @@
 import pygame
 import settings
-from solver import solve
+from solver import solve, is_possible
 
 pygame.font.init()
 
@@ -9,30 +9,52 @@ class Board:
     def __init__(self):
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = settings.puzzle_hard
+        self.puzzle = settings.puzzle
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
+        self.solution = None
 
-    def draw_lines(self, screen):
+    def draw_lines(self, screen) -> None:
+        """
+        Draw 10 horizontal and 10 vertical lines on the pygame `screen`.
+        Every third line is wider.
+        :param screen: Pygame display window
+        :return: None
+        """
         # Draw horizontal and vertical lines
         cell_size = self.width // 9
         for i in range(10):
             width = 1
+            # Every third line is wider
             if i % 3 == 0:
                 width = 5
+            # Calculate start and end positions for the line
             start_pos_horizontal = (0, i * cell_size)
             end_pos_horizontal = (self.width, i * cell_size)
-            pygame.draw.line(screen, settings.BLACK, start_pos_horizontal, end_pos_horizontal, width)
             start_pos_vertical = (i * cell_size, 0)
             end_pos_vertical = (i * cell_size, self.height)
+            # Draw the i:th horizontal and vertical line
+            pygame.draw.line(screen, settings.BLACK, start_pos_horizontal, end_pos_horizontal, width)
             pygame.draw.line(screen, settings.BLACK, start_pos_vertical, end_pos_vertical, width)
 
-    def draw_cells(self, screen):
+    def draw_cells(self, screen) -> None:
+        """
+        Draw each of the cells
+        :param screen: Pygame display window
+        :return: None
+        """
         for i in range(9):
             for j in range(9):
                 self.cells[i][j].draw_cell(screen)
 
-    def select_cell(self, row, col, screen):
+    def select_cell(self, row: int, col: int, screen) -> None:
+        """
+        Change the selected cell while resetting the previous values
+        :param row: Selected cell's row
+        :param col: Selected cell's column
+        :param screen: Pygame display window
+        :return: None
+        """
         # Reset other cells
         for i in range(9):
             for j in range(9):
@@ -42,7 +64,9 @@ class Board:
         col %= 9
         self.cells[row][col].is_selected = True
         self.selected_cell = (row, col)
-        # print(self.selected_cell)
+        # self.cells[self.selected_cell[0]][self.selected_cell[1]].is_selected = True
+
+        # Draw the cells to update the screen.
         self.draw_cells(screen)
 
     def update_cells(self):
@@ -50,11 +74,22 @@ class Board:
             for j in range(9):
                 self.cells[i][j].value = self.puzzle[i][j]
 
-    def clear_cells(self):
+    def clear_cells(self) -> None:
+        """
+        Clear every cell except the ones with initial values.
+        :return: None
+        """
         for i in range(9):
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = 0
+
+    def show_solution(self, solution):
+        self.solution = solution
+        for i in range(9):
+            for j in range(9):
+                if not self.cells[i][j].has_initial_value:
+                    self.cells[i][j].value = self.solution[i][j]
 
 
 class Cell:
@@ -67,23 +102,43 @@ class Cell:
         self.is_selected = False
         self.has_initial_value = True if self.value else False
 
-    def draw_cell(self, screen):
+    def draw_cell(self, screen) -> None:
+        """
+        Draw a new value in the cell in question
+        :param screen: Pygame display screen
+        :return: None
+        """
+
+        # Check if the cell is selected and choose corresponding color
         if self.is_selected:
             color = settings.SELECTED_COLOR
         else:
             color = settings.WHITE
+        # Create solid coloured Pygame Rect object and draw it into correct position
         cell = pygame.Rect(self.col * self.cell_width, self.row * self.cell_height, self.cell_width, self.cell_height)
         pygame.draw.rect(screen, color, cell)
+        # If the cell has a value, draw it on top of the coloured cell
         if self.value:
             self.draw_value(screen)
 
-    def draw_value(self, screen):
+    def draw_value(self, screen) -> None:
+        """
+        Draw a value in the cell. For the initial values the font is larger and darker.
+        :param screen: Pygame display window
+        :return: None
+        """
+
+        # Choose black color for initial values and grey for others
         color = settings.BLACK if self.has_initial_value else settings.GREY
+        # Choose larger font for initial values
         size = settings.FONT_SIZE_LARGE if self.has_initial_value else settings.FONT_SIZE_NORMAL
+        # Create the font object to draw
         font = pygame.font.SysFont("comicsans", size)
         text = font.render(str(self.value), True, color)
+        # Calculate the placement for the text
         width_adjustment = (self.cell_width - text.get_width()) // 2
         height_adjustment = (self.cell_height - text.get_height()) // 2
+        # Draw the text in the proper position
         screen.blit(text, (self.cell_width * self.col + width_adjustment,
                            self.cell_height * self.row + height_adjustment))
 
@@ -132,17 +187,63 @@ def handle_number_keys(event, board, screen):
         value = 10
     if event.key == pygame.K_BACKSPACE:
         value = 10
+    # if 0 < value <= 10:
+    #     row = board.selected_cell[0]
+    #     col = board.selected_cell[1]
+    #     if not board.cells[row][col].has_initial_value:
+    #         if 0 < value < 10:
+    #             possible = is_possible(board.puzzle, value, row, col)
+    #             print(possible)
+    #             if possible:
+    #                 board.cells[row][col].value = value
+    #         else:
+    #             board.cells[row][col].value = 0
+        # if not board.cells[row][col].has_initial_value:
+        #     if value == 10:
+        #         board.cells[row][col].value = 0
+        #     else:
+        #         board.cells[row][col].value = value
+
     if value and not board.cells[board.selected_cell[0]][board.selected_cell[1]].has_initial_value:
         if value == 10:
             board.cells[board.selected_cell[0]][board.selected_cell[1]].value = 0
         else:
+            # print(board.puzzle)
             board.cells[board.selected_cell[0]][board.selected_cell[1]].value = value
 
+    # if 0 < value <= 10:
+    #     row = board.selected_cell[0]
+    #     col = board.selected_cell[1]
+    #     if board.cells[row][col].has_initial_value:
+    #         return
+    #     # previous_value = board.cells[row][col].value
+    #     # print(row, col, value)
+    #     # print(possible)
+    #     if value == 10:
+    #         board.cells[row][col].value = 0
+    #         return
+    #     possible = is_possible(board.puzzle, value, row, col)
+    #     print(board.puzzle)
+    #     if possible:
+    #         board.cells[row][col].value = value
+    #     # if not board.cells[row][col].has_initial_value and possible:
+    #     #     if value == 10:
+    #     #         board.cells[row][col].value = 0
+    #     #     else:
+    #     #         board.cells[row][col].value = value
 
+
+
+def draw_game_info(screen):
+    font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
+    text1 = font.render(settings.info1, True, settings.BLACK)
+    text2 = font.render(settings.info2, True, settings.BLACK)
+    screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
+    screen.blit(text2, ((settings.w_width - text2.get_width()) / 2, settings.height + text1.get_height()))
 
 
 def run_game():
-    screen = pygame.display.set_mode((settings.width, settings.height))
+    screen = pygame.display.set_mode((settings.w_width, settings.w_height))
     pygame.display.set_caption("Sudoku Solver")
     screen.fill(settings.WHITE)
     clock = pygame.time.Clock()
@@ -161,14 +262,19 @@ def run_game():
             if event.type == pygame.KEYDOWN:
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board, screen)
-                if event.key == pygame.K_SPACE:
-                    board.puzzle = solve(board.puzzle)
-                    board.update_cells()
+                if event.key == pygame.K_s:
+                    # board.puzzle = solve(board.puzzle)
+                    # TODO: check if solver return proper solution
+                    board.show_solution(solve(board.puzzle))
+                    # board.update_cells()
                 if event.key == pygame.K_DELETE:
                     board.clear_cells()
+                if event.key == pygame.K_ESCAPE:
+                    run = False
 
         board.draw_cells(screen)
         board.draw_lines(screen)
+        draw_game_info(screen)
         pygame.display.update()
 
 

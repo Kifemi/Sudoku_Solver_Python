@@ -1,9 +1,11 @@
 import settings
 import time
+import copy
 
 
 def solve(puzzle):
-    temp_puzzle = puzzle.copy()
+    # temp_puzzle = puzzle.copy()
+    temp_puzzle = copy.deepcopy(puzzle)
 
     run = True
 
@@ -31,7 +33,7 @@ def solve(puzzle):
         run = False
 
     backtracking(temp_puzzle)
-
+    # print(temp_puzzle)
     return temp_puzzle
 
 

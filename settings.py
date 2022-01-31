@@ -7,6 +7,15 @@ GREY = (120, 120, 120)
 
 FONT_SIZE_LARGE = 50
 FONT_SIZE_NORMAL = 40
+FONT_SIZE_INFO = 20
+
+# window settings
+w_width = 540
+w_height = 640
+
+info1 = "Esc: close || Arrows: move || S: solve"
+info2 = "Backspace/0: clear cell || Del: clear all"
+info3 = "Space: check solution"
 
 # board settings
 width = 540
