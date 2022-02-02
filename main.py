@@ -1,5 +1,6 @@
 import pygame
 import settings
+import copy
 from solver import solve, is_possible
 
 pygame.font.init()
@@ -10,6 +11,8 @@ class Board:
         self.width = settings.width
         self.height = settings.height
         self.puzzle = settings.puzzle
+        # TODO: Check if the values written by user are valid
+        # self.current_state = copy.deepcopy(self.puzzle)
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
         self.solution = None
@@ -85,8 +88,17 @@ class Board:
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = 0
 
+    def clear_errors(self):
+        for i in range(9):
+            for j in range(9):
+                self.cells[i][j].error = False
+
     def show_solution(self, solution):
-        self.solution = solution
+        if solution is not None:
+            self.solution = solution
+        else:
+            print("Puzzle is impossible to solve")
+            return
         for i in range(9):
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
@@ -102,6 +114,7 @@ class Cell:
         self.cell_height = height // 9
         self.is_selected = False
         self.has_initial_value = True if self.value else False
+        self.error = False
 
     @property
     def value(self):
@@ -124,6 +137,8 @@ class Cell:
         # Check if the cell is selected and choose corresponding color
         if self.is_selected:
             color = settings.SELECTED_COLOR
+        elif self.error:
+            color = settings.RED
         else:
             color = settings.WHITE
         # Create solid coloured Pygame Rect object and draw it into correct position
@@ -202,10 +217,14 @@ def handle_number_keys(event, board):
         col = board.selected_cell[1]
         if not board.cells[row][col].has_initial_value:
             possible = True
+            errors = []
             if value != 10:
-                possible = is_possible(board.puzzle, value, row, col)
+                possible, errors = is_possible(board.puzzle, value, row, col)
             if possible:
                 board.cells[row][col].value = value
+            else:
+                for row, col in errors:
+                    board.cells[row][col].error = True
 
 
 def draw_game_info(screen):
@@ -231,9 +250,11 @@ def run_game():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEBUTTONDOWN:
+                board.clear_errors()
                 if event.button == 1:
                     handle_mouse_click(board, screen)
             if event.type == pygame.KEYDOWN:
+                board.clear_errors()
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board)
                 if event.key == pygame.K_s:
