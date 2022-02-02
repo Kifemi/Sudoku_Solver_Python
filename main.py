@@ -12,7 +12,7 @@ class Board:
         self.height = settings.height
         self.puzzle = settings.puzzle
         # TODO: Check if the values written by user are valid
-        # self.current_state = copy.deepcopy(self.puzzle)
+        self.current_puzzle = copy.deepcopy(self.puzzle)
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
         self.solution = None
@@ -73,16 +73,17 @@ class Board:
         self.draw_cells(screen)
 
     # TODO: at the moment doesn't do anything
-    def update_cells(self):
-        for i in range(9):
-            for j in range(9):
-                self.cells[i][j].value = self.puzzle[i][j]
+    # def update_cells(self):
+    #     for i in range(9):
+    #         for j in range(9):
+    #             self.cells[i][j].value = self.puzzle[i][j]
 
     def clear_cells(self) -> None:
         """
         Clear every cell except the ones with initial values.
         :return: None
         """
+        self.current_puzzle = self.puzzle
         for i in range(9):
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
@@ -91,11 +92,18 @@ class Board:
     def clear_errors(self):
         for i in range(9):
             for j in range(9):
-                self.cells[i][j].error = False
+                self.cells[i][j].show_error = False
+
+    def update_puzzle(self, value, row, col) -> None:
+        if 0 < value < 10:
+            self.current_puzzle[row][col] = value
+        elif value == 10:
+            self.current_puzzle[row][col] = 0
 
     def show_solution(self, solution):
         if solution is not None:
             self.solution = solution
+            self.current_puzzle = solution
         else:
             print("Puzzle is impossible to solve")
             return
@@ -114,7 +122,7 @@ class Cell:
         self.cell_height = height // 9
         self.is_selected = False
         self.has_initial_value = True if self.value else False
-        self.error = False
+        self.show_error = False
 
     @property
     def value(self):
@@ -137,7 +145,7 @@ class Cell:
         # Check if the cell is selected and choose corresponding color
         if self.is_selected:
             color = settings.SELECTED_COLOR
-        elif self.error:
+        elif self.show_error:
             color = settings.RED
         else:
             color = settings.WHITE
@@ -219,12 +227,13 @@ def handle_number_keys(event, board):
             possible = True
             errors = []
             if value != 10:
-                possible, errors = is_possible(board.puzzle, value, row, col)
+                possible, errors = is_possible(board.current_puzzle, value, row, col)
             if possible:
                 board.cells[row][col].value = value
+                board.update_puzzle(value, row, col)
             else:
                 for row, col in errors:
-                    board.cells[row][col].error = True
+                    board.cells[row][col].show_error = True
 
 
 def draw_game_info(screen):

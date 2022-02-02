@@ -1,5 +1,3 @@
-import settings
-import time
 import copy
 
 
@@ -42,10 +40,6 @@ def fill_unique(possible_values, temp_puzzle) -> bool:
         for j in range(9):
             if possible_values[i][j] is not None:
                 value_set = possible_values[i][j]
-                # No possible values, impossible puzzle
-                # if len(value_set) == 0:
-                #     print("Impossible puzzle")
-                #     return None
                 # If only one possible value in cell, fill it
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
