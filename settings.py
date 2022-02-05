@@ -23,6 +23,7 @@ width = 540
 height = 540
 cell_size = width // 9
 
+# puzzles
 puzzle = [
     [0, 0, 0, 0, 8, 0, 0, 0, 0],
     [0, 0, 0, 5, 0, 0, 0, 1, 3],

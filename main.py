@@ -1,7 +1,7 @@
 import pygame
 import settings
 import copy
-from solver import solve, is_possible
+from solver import solve, is_possible, check_solution
 
 pygame.font.init()
 
@@ -11,11 +11,23 @@ class Board:
         self.width = settings.width
         self.height = settings.height
         self.puzzle = settings.puzzle
-        # TODO: Check if the values written by user are valid
-        self.current_puzzle = copy.deepcopy(self.puzzle)
+        self._current_puzzle = None
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
         self.solution = None
+
+        # Initializing values
+        self.cells[0][0].is_selected = True
+        # Creating a deepcopy of self.puzzle by using current_puzzle setter property
+        self.current_puzzle = self.puzzle
+
+    @property
+    def current_puzzle(self):
+        return self._current_puzzle
+
+    @current_puzzle.setter
+    def current_puzzle(self, puzzle):
+        self._current_puzzle = copy.deepcopy(puzzle)
 
     def draw_lines(self, screen) -> None:
         """
@@ -52,31 +64,47 @@ class Board:
 
     def select_cell(self, row: int, col: int, screen) -> None:
         """
-        Change the selected cell while resetting the previous values
+        Change the selected cell while resetting the previous values. Cells
+        in the top row move to the bottom row in the case of upward movement and
+        cells in the bottom row move to top row in the case of downward movement.
+        Works similarly for the horizontal movement.
         :param row: Selected cell's row
         :param col: Selected cell's column
         :param screen: Pygame display window
         :return: None
         """
-        # Reset other cells
+        # Reset every cell
         for i in range(9):
             for j in range(9):
                 self.cells[i][j].is_selected = False
 
+        # Row and column numbers are between 0 and 8. If the number is bigger
+        # reduce it back to the range by taking modulo 9.
         row %= 9
         col %= 9
+        # Select new cell
         self.cells[row][col].is_selected = True
         self.selected_cell = (row, col)
-        # self.cells[self.selected_cell[0]][self.selected_cell[1]].is_selected = True
 
         # Draw the cells to update the screen.
         self.draw_cells(screen)
 
-    # TODO: at the moment doesn't do anything
-    # def update_cells(self):
-    #     for i in range(9):
-    #         for j in range(9):
-    #             self.cells[i][j].value = self.puzzle[i][j]
+    def change_value(self, value: int) -> None:
+        row = self.selected_cell[0]
+        col = self.selected_cell[1]
+        if not self.cells[row][col].has_initial_value:
+            possible = True
+            errors = []
+            if value != 10:
+                possible, errors = is_possible(self.current_puzzle, value, row, col)
+            if possible:
+                # If value 10 is provided, use the cell's value property to change
+                # the value to zero (clear the cell).
+                self.cells[row][col].value = value
+                self.update_puzzle(value, row, col)
+            else:
+                for row, col in errors:
+                    self.cells[row][col].show_error = True
 
     def clear_cells(self) -> None:
         """
@@ -97,13 +125,16 @@ class Board:
     def update_puzzle(self, value, row, col) -> None:
         if 0 < value < 10:
             self.current_puzzle[row][col] = value
+            if check_solution(self.current_puzzle):
+                print("Congratulations you solved the puzzle!")
         elif value == 10:
             self.current_puzzle[row][col] = 0
 
     def show_solution(self, solution):
         if solution is not None:
             self.solution = solution
-            self.current_puzzle = solution
+            self.current_puzzle = self.solution
+            print("Puzzle solved by backtracking")
         else:
             print("Puzzle is impossible to solve")
             return
@@ -178,15 +209,39 @@ class Cell:
                            self.cell_height * self.row + height_adjustment))
 
 
-def handle_mouse_click(board, screen):
+def handle_mouse_click(board, screen) -> None:
+    """
+    Calculate which cell is clicked and select it. If the click is outside the
+    board, do nothing.
+    :param board: `Board` class object
+    :param screen: Pygame display window
+    :return: None
+    """
+    # Get mouse click coordinates
     x, y = pygame.mouse.get_pos()
-    row = y // settings.cell_size
-    col = x // settings.cell_size
+    # Check if the click is inside the board
+    if y < settings.height:
+        # Calculate which row and column contain the clicked cell
+        row = y // settings.cell_size
+        col = x // settings.cell_size
+    # If click outside of the board, do nothing
+    else:
+        return
+    # Select new cell
     board.select_cell(row, col, screen)
 
 
-def handle_arrow_keys(event, board, screen):
+def handle_arrow_keys(event, board, screen) -> None:
+    """
+    Use the arrow keys to move the selected cell to corresponding direction.
+    :param event: Pygame event
+    :param board: `Board` class object
+    :param screen: Pygame display window
+    :return: None
+    """
+    # Get the location of the currently selected cell
     row, col = board.selected_cell
+    # Check if any of the arrow keys is pressed
     if event.key == pygame.K_UP:
         row -= 1
     if event.key == pygame.K_DOWN:
@@ -199,41 +254,26 @@ def handle_arrow_keys(event, board, screen):
 
 
 def handle_number_keys(event, board):
-    value = 0
     if event.key == pygame.K_1:
-        value = 1
+        board.change_value(1)
     if event.key == pygame.K_2:
-        value = 2
+        board.change_value(2)
     if event.key == pygame.K_3:
-        value = 3
+        board.change_value(3)
     if event.key == pygame.K_4:
-        value = 4
+        board.change_value(4)
     if event.key == pygame.K_5:
-        value = 5
+        board.change_value(5)
     if event.key == pygame.K_6:
-        value = 6
+        board.change_value(6)
     if event.key == pygame.K_7:
-        value = 7
+        board.change_value(7)
     if event.key == pygame.K_8:
-        value = 8
+        board.change_value(8)
     if event.key == pygame.K_9:
-        value = 9
+        board.change_value(9)
     if event.key == pygame.K_0 or event.key == pygame.K_BACKSPACE:
-        value = 10
-    if value != 0:
-        row = board.selected_cell[0]
-        col = board.selected_cell[1]
-        if not board.cells[row][col].has_initial_value:
-            possible = True
-            errors = []
-            if value != 10:
-                possible, errors = is_possible(board.current_puzzle, value, row, col)
-            if possible:
-                board.cells[row][col].value = value
-                board.update_puzzle(value, row, col)
-            else:
-                for row, col in errors:
-                    board.cells[row][col].show_error = True
+        board.change_value(10)
 
 
 def draw_game_info(screen):
@@ -267,7 +307,6 @@ def run_game():
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board)
                 if event.key == pygame.K_s:
-                    # TODO: check if solver return proper solution
                     board.show_solution(solve(board.puzzle))
                 if event.key == pygame.K_DELETE:
                     board.clear_cells()
@@ -283,3 +322,9 @@ def run_game():
 if __name__ == "__main__":
     run_game()
     pygame.quit()
+    print("Sudoku solver closed")
+
+
+# TODO: Add GUI for settings
+# TODO: Add GUI for controls
+# TODO: Database for saving the puzzles
