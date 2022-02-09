@@ -1,49 +1,46 @@
 import copy
 import pygame
 
-
-def solve(puzzle):
+def solve(puzzle, board):
     temp_puzzle = copy.deepcopy(puzzle)
 
     run = True
 
     while run:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    exit()
-
         possible_values = [[get_possible_values(temp_puzzle, i, j) for j in range(9)] for i in range(9)]
 
         # Fill unique values
-        if fill_unique(possible_values, temp_puzzle):
-            continue
+        continue_loop, cell = fill_unique(possible_values, temp_puzzle)
+        if continue_loop:
+            board.cells[cell[0]][cell[1]].unique_value = True
+            board.current_puzzle = temp_puzzle
+            # yield
+        else:
+            run = False
+        # # Check if possible value appears once in a 3x3 square
+        # if fill_square(possible_values, temp_puzzle):
+        #     continue
+        #
+        # # Check if possible value appears once in a row
+        # if fill_row(possible_values, temp_puzzle):
+        #     continue
+        #
+        # # Check if possible value appears once in a column
+        # if fill_col(possible_values, temp_puzzle):
+        #     continue
 
-        # Check if possible value appears once in a 3x3 square
-        if fill_square(possible_values, temp_puzzle):
-            continue
 
-        # Check if possible value appears once in a row
-        if fill_row(possible_values, temp_puzzle):
-            continue
 
-        # Check if possible value appears once in a column
-        if fill_col(possible_values, temp_puzzle):
-            continue
-
-        run = False
-
-    backtracking(temp_puzzle)
+    # backtracking(temp_puzzle)
     # print(temp_puzzle)
-    if check_solution(temp_puzzle):
-        return temp_puzzle
-    else:
-        return None
+    # if check_solution(temp_puzzle):
+    #     return temp_puzzle
+    # else:
+    #     return None
+    return temp_puzzle
 
 
-def fill_unique(possible_values, temp_puzzle) -> bool:
+def fill_unique(possible_values, temp_puzzle) -> (bool, (int, int)):
     for i in range(9):
         for j in range(9):
             if possible_values[i][j] is not None:
@@ -52,11 +49,11 @@ def fill_unique(possible_values, temp_puzzle) -> bool:
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
                     # print(f"first loop: {i}, {j}, {temp_puzzle[i][j]}")
-                    return True
-    return False
+                    return True, (i, j)
+    return False, (None, None)
 
 
-def fill_row(possible_values, temp_puzzle) -> bool:
+def fill_row(possible_values, temp_puzzle) -> (bool, (int, int)):
     for i in range(9):
         for j in range(9):
             if possible_values[i][j] is not None:
@@ -67,11 +64,11 @@ def fill_row(possible_values, temp_puzzle) -> bool:
                 if len(value_set) == 1:
                     temp_puzzle[i][j] = next(iter(value_set))
                     # print(f"row loop: {i}, {j}, {temp_puzzle[i][j]}")
-                    return True
-    return False
+                    return True, (i, j)
+    return False, (None, None)
 
 
-def fill_col(possible_values, temp_puzzle) -> bool:
+def fill_col(possible_values, temp_puzzle) -> (bool, (int, int)):
     for i in range(9):
         for j in range(9):
             value_set = [possible_values[j][i] for j in range(9)]
@@ -82,11 +79,11 @@ def fill_col(possible_values, temp_puzzle) -> bool:
                 if len(value_set[j]) == 1:
                     temp_puzzle[j][i] = next(iter(value_set[j]))
                     # print(f"col loop: {j}, {i}, {temp_puzzle[j][i]}")
-                    return True
-    return False
+                    return True, (j, i)
+    return False, (None, None)
 
 
-def fill_square(possible_values, temp_puzzle) -> bool:
+def fill_square(possible_values, temp_puzzle) -> (bool, (int, int)):
     for n in range(3):
         for m in range(3):
             value_set = []
@@ -104,11 +101,11 @@ def fill_square(possible_values, temp_puzzle) -> bool:
                 if value_set_temp[k] is not None and len(value_set_temp[k]) == 1:
                     temp_puzzle[n*3 + k // 3][m*3 + k % 3] = next(iter(value_set_temp[k]))
                     # print(f"square loop: {n*3 + k // 3}, {m*3 + k % 3}, {temp_puzzle[n*3 + k // 3][m*3 + k % 3]}")
-                    return True
-    return False
+                    return True, (n*3 + k // 3, m*3 + k % 3)
+    return False, (None, None)
 
 
-def backtracking(puzzle) -> bool:
+def backtracking(board, screen) -> bool:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit()
@@ -116,22 +113,29 @@ def backtracking(puzzle) -> bool:
             if event.key == pygame.K_ESCAPE:
                 exit()
 
-    empty_cell = check_if_empty(puzzle)
+    empty_cell = check_if_empty(board.current_puzzle)
     if empty_cell:
         row, col = empty_cell
         # print(f"row: {row}, col: {col}")
     else:
         return True
     for k in range(1, 10):
-        if is_possible(puzzle, k, row, col)[0]:
-            puzzle[row][col] = k
-            # for row_temp in puzzle:
-            #     print(row_temp)
-            # print()
-            if backtracking(puzzle):
+        if is_possible(board.current_puzzle, k, row, col)[0]:
+            board.current_puzzle[row][col] = k
+            board.cells[row][col].backtracking_correct = True
+            board.cells[row][col].value = k
+            board.update_board(screen)
+            pygame.time.delay(50)
+            if backtracking(board, screen):
                 return True
             # print(f"row2: {row}, col2: {col}")
-            puzzle[row][col] = 0
+            board.current_puzzle[row][col] = 0
+            board.cells[row][col].backtracking_incorrect = True
+            board.cells[row][col].backtracking_correct = False
+            board.cells[row][col].value = 0
+            pygame.time.delay(50)
+
+            board.update_board(screen)
 
     return False
 

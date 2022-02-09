@@ -1,18 +1,21 @@
 import pygame
 import settings
 import copy
+
 from solver import solve, is_possible, check_solution
+import solver_test
 
 pygame.font.init()
 
 
 class Board:
-    def __init__(self):
+    def __init__(self, screen):
+        self.screen = screen
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = settings.puzzle
+        self.puzzle = settings.puzzle_hard
         self._current_puzzle = None
-        self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height) for j in range(9)] for i in range(9)]
+        self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in range(9)]
         self.selected_cell = (0, 0)
         self.solution = None
 
@@ -101,10 +104,12 @@ class Board:
                 # If value 10 is provided, use the cell's value property to change
                 # the value to zero (clear the cell).
                 self.cells[row][col].value = value
-                self.update_puzzle(value, row, col)
+                self.update_value(value, row, col)
+                # self.cells[row][col].draw_cell(self.screen)
             else:
                 for row, col in errors:
                     self.cells[row][col].show_error = True
+                    self.cells[row][col].draw_cell(self.screen)
 
     def clear_cells(self) -> None:
         """
@@ -116,13 +121,17 @@ class Board:
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = 0
+                    # self.cells[i][j].draw_cell(self.screen)
 
-    def clear_errors(self):
+    def clear_bg_colors(self):
         for i in range(9):
             for j in range(9):
                 self.cells[i][j].show_error = False
+                self.cells[i][j].unique_value = None
+                self.cells[i][j].backtracking_correct = False
+                self.cells[i][j].backtracking_incorrect = False
 
-    def update_puzzle(self, value, row, col) -> None:
+    def update_value(self, value, row, col) -> None:
         if 0 < value < 10:
             self.current_puzzle[row][col] = value
             if check_solution(self.current_puzzle):
@@ -134,7 +143,7 @@ class Board:
         if solution is not None:
             self.solution = solution
             self.current_puzzle = self.solution
-            print("Puzzle solved by backtracking")
+            print("Puzzle solved by non-visual backtracking")
         else:
             print("Puzzle is impossible to solve")
             return
@@ -142,18 +151,76 @@ class Board:
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = self.solution[i][j]
+        self.draw_cells(self.screen)
+
+    def update_board(self, screen):
+        # self.draw_cells(screen)
+        self.draw_lines(screen)
+        # draw_game_info(screen)
+        pygame.display.update()
+
+    def solve_unique_values(self, func, possible_values, color):
+        value_found = True
+        continue_loop, cell = func(possible_values, self.current_puzzle)
+        if continue_loop:
+            self.cells[cell[0]][cell[1]].unique_value = color.copy()
+            self.cells[cell[0]][cell[1]].value = self.current_puzzle[cell[0]][cell[1]]
+            color[2] -= 3
+            color[0] += 2
+            # self.cells[cell[0]][cell[1]].draw_cell(self.screen)
+        else:
+            value_found = False
+        self.update_board(self.screen)
+        return value_found
+
+    def solve_visually(self):
+        run = True
+        color = list(settings.DARK_BLUE)
+
+        while run:
+            possible_values = [[solver_test.get_possible_values(self.current_puzzle, i, j) for j in range(9)] for i in range(9)]
+
+            if self.solve_unique_values(solver_test.fill_unique, possible_values, color):
+                continue
+            if self.solve_unique_values(solver_test.fill_square, possible_values, color):
+                continue
+            if self.solve_unique_values(solver_test.fill_row, possible_values, color):
+                continue
+            if self.solve_unique_values(solver_test.fill_col, possible_values, color):
+                continue
+
+            if not check_solution(self.current_puzzle):
+                print("Backtracking visually....")
+                solver_test.backtracking(self, self.screen)
+                self.clear_bg_colors()
+                self.draw_cells(self.screen)
+                self.update_board(self.screen)
+
+            run = False
+
+        print("Closing solver")
+
+        if check_solution(self.current_puzzle):
+            print("Board solved by visual backtracking")
+        else:
+            print("Impossible puzzle (Visual backtracking)")
 
 
 class Cell:
-    def __init__(self, value, row, col, width, height):
+    def __init__(self, value, row, col, width, height, screen):
+        self.screen = screen
         self._value = value
         self.row = row
         self.col = col
         self.cell_width = width // 9
         self.cell_height = height // 9
-        self.is_selected = False
         self.has_initial_value = True if self.value else False
+        # Attributes affecting to background color
+        self.is_selected = False
         self.show_error = False
+        self.unique_value = None
+        self.backtracking_correct = False
+        self.backtracking_incorrect = False
 
     @property
     def value(self):
@@ -165,6 +232,8 @@ class Cell:
             self._value = x
         else:
             self._value = 0
+        self.draw_cell(self.screen)
+        pygame.display.update()
 
     def draw_cell(self, screen) -> None:
         """
@@ -174,10 +243,12 @@ class Cell:
         """
 
         # Check if the cell is selected and choose corresponding color
-        if self.is_selected:
+        if self.is_selected or self.backtracking_correct:
             color = settings.SELECTED_COLOR
-        elif self.show_error:
+        elif self.show_error or self.backtracking_incorrect:
             color = settings.RED
+        elif self.unique_value is not None:
+            color = self.unique_value
         else:
             color = settings.WHITE
         # Create solid coloured Pygame Rect object and draw it into correct position
@@ -291,7 +362,8 @@ def run_game():
     clock = pygame.time.Clock()
     run = True
 
-    board = Board()
+    board = Board(screen)
+    board.draw_cells(screen)
 
     while run:
         clock.tick(settings.FPS)
@@ -299,24 +371,23 @@ def run_game():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                board.clear_errors()
+                board.clear_bg_colors()
                 if event.button == 1:
                     handle_mouse_click(board, screen)
             if event.type == pygame.KEYDOWN:
-                board.clear_errors()
+                board.clear_bg_colors()
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board)
                 if event.key == pygame.K_s:
                     board.show_solution(solve(board.puzzle))
+                if event.key == pygame.K_v:
+                    board.solve_visually()
                 if event.key == pygame.K_DELETE:
                     board.clear_cells()
                 if event.key == pygame.K_ESCAPE:
                     run = False
 
-        board.draw_cells(screen)
-        board.draw_lines(screen)
-        draw_game_info(screen)
-        pygame.display.update()
+        board.update_board(screen)
 
 
 if __name__ == "__main__":
