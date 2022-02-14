@@ -1,9 +1,10 @@
 import pygame
 import settings
 import copy
+import tkinter as tk
 
 from solver import solve, is_possible, check_solution
-import solver_test
+import solver_visual
 
 pygame.font.init()
 
@@ -135,7 +136,9 @@ class Board:
         if 0 < value < 10:
             self.current_puzzle[row][col] = value
             if check_solution(self.current_puzzle):
-                print("Congratulations you solved the puzzle!")
+                # print("Congratulations you solved the puzzle!")
+                self.update_board(self.screen)
+                show_end_screen("Congratulations! You solved the puzzle")
         elif value == 10:
             self.current_puzzle[row][col] = 0
 
@@ -143,20 +146,23 @@ class Board:
         if solution is not None:
             self.solution = solution
             self.current_puzzle = self.solution
-            print("Puzzle solved by non-visual backtracking")
+            # print("Puzzle solved by non-visual backtracking")
         else:
-            print("Puzzle is impossible to solve")
+            # print("Puzzle is impossible to solve")
+            show_end_screen("Puzzle is impossible to solve")
             return
         for i in range(9):
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = self.solution[i][j]
         self.draw_cells(self.screen)
+        self.update_board(self.screen)
+        show_end_screen("Puzzle solved by non-visual backtracking")
 
     def update_board(self, screen):
         # self.draw_cells(screen)
         self.draw_lines(screen)
-        # draw_game_info(screen)
+        draw_game_info(screen)
         pygame.display.update()
 
     def solve_unique_values(self, func, possible_values, color):
@@ -178,20 +184,21 @@ class Board:
         color = list(settings.DARK_BLUE)
 
         while run:
-            possible_values = [[solver_test.get_possible_values(self.current_puzzle, i, j) for j in range(9)] for i in range(9)]
+            possible_values = [[solver_visual.get_possible_values(self.current_puzzle, i, j) for j in range(9)]
+                               for i in range(9)]
 
-            if self.solve_unique_values(solver_test.fill_unique, possible_values, color):
+            if self.solve_unique_values(solver_visual.fill_unique, possible_values, color):
                 continue
-            if self.solve_unique_values(solver_test.fill_square, possible_values, color):
+            if self.solve_unique_values(solver_visual.fill_square, possible_values, color):
                 continue
-            if self.solve_unique_values(solver_test.fill_row, possible_values, color):
+            if self.solve_unique_values(solver_visual.fill_row, possible_values, color):
                 continue
-            if self.solve_unique_values(solver_test.fill_col, possible_values, color):
+            if self.solve_unique_values(solver_visual.fill_col, possible_values, color):
                 continue
 
             if not check_solution(self.current_puzzle):
                 print("Backtracking visually....")
-                solver_test.backtracking(self, self.screen)
+                solver_visual.backtracking(self, self.screen)
                 self.clear_bg_colors()
                 self.draw_cells(self.screen)
                 self.update_board(self.screen)
@@ -201,9 +208,11 @@ class Board:
         print("Closing solver")
 
         if check_solution(self.current_puzzle):
-            print("Board solved by visual backtracking")
+            show_end_screen("Board solved by visual backtracking")
+            # print("Board solved by visual backtracking")
         else:
-            print("Impossible puzzle (Visual backtracking)")
+            show_end_screen("Impossible puzzle (Visual backtracking)")
+            # print("Impossible puzzle (Visual backtracking)")
 
 
 class Cell:
@@ -350,9 +359,57 @@ def handle_number_keys(event, board):
 def draw_game_info(screen):
     font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
     text1 = font.render(settings.info1, True, settings.BLACK)
-    text2 = font.render(settings.info2, True, settings.BLACK)
     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
-    screen.blit(text2, ((settings.w_width - text2.get_width()) / 2, settings.height + text1.get_height()))
+
+
+def center_window(window, width, height):
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+
+    window_x = (screen_width - width) / 2
+    window_y = (screen_height - height) / 2
+
+    window.geometry("%dx%d+%d+%d" % (width, height, window_x, window_y))
+
+
+def show_controls() -> None:
+    """
+    Open a Tkinter window where all the control buttons are displayed
+    :return: None
+    """
+    window = tk.Tk()
+    window.title("Controls")
+    center_window(window, 200, 150)
+    controls_image = tk.PhotoImage(file="settings.png")
+    window.iconphoto(True, controls_image)
+
+    row = 0
+    for key, value in settings.controls.items():
+        tk.Label(window, text=f"{key}: ").grid(row=row, column=0)
+        tk.Label(window, text=f"{value}").grid(row=row, column=1)
+        row += 1
+
+    window.mainloop()
+
+
+def open_settings():
+    window = tk.Tk()
+    window.title("Settings")
+    center_window(window, 400, 400)
+    settings_image = tk.PhotoImage(file="settings.png")
+    window.iconphoto(True, settings_image)
+
+    window.mainloop()
+
+
+def show_end_screen(text):
+    window = tk.Tk()
+    window.title("Sudoku")
+    center_window(window, 400, 50)
+
+    message = tk.Label(window, text=text)
+    message.pack(fill=tk.BOTH, expand=tk.YES)
+    window.mainloop()
 
 
 def run_game():
@@ -378,12 +435,16 @@ def run_game():
                 board.clear_bg_colors()
                 handle_arrow_keys(event, board, screen)
                 handle_number_keys(event, board)
-                if event.key == pygame.K_s:
+                if event.key == pygame.K_SPACE:
                     board.show_solution(solve(board.puzzle))
                 if event.key == pygame.K_v:
                     board.solve_visually()
                 if event.key == pygame.K_DELETE:
                     board.clear_cells()
+                if event.key == pygame.K_c:
+                    show_controls()
+                if event.key == pygame.K_s:
+                    open_settings()
                 if event.key == pygame.K_ESCAPE:
                     run = False
 

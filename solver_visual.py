@@ -1,44 +1,6 @@
 import copy
 import pygame
 
-def solve(puzzle, board):
-    temp_puzzle = copy.deepcopy(puzzle)
-
-    run = True
-
-    while run:
-        possible_values = [[get_possible_values(temp_puzzle, i, j) for j in range(9)] for i in range(9)]
-
-        # Fill unique values
-        continue_loop, cell = fill_unique(possible_values, temp_puzzle)
-        if continue_loop:
-            board.cells[cell[0]][cell[1]].unique_value = True
-            board.current_puzzle = temp_puzzle
-            # yield
-        else:
-            run = False
-        # # Check if possible value appears once in a 3x3 square
-        # if fill_square(possible_values, temp_puzzle):
-        #     continue
-        #
-        # # Check if possible value appears once in a row
-        # if fill_row(possible_values, temp_puzzle):
-        #     continue
-        #
-        # # Check if possible value appears once in a column
-        # if fill_col(possible_values, temp_puzzle):
-        #     continue
-
-
-
-    # backtracking(temp_puzzle)
-    # print(temp_puzzle)
-    # if check_solution(temp_puzzle):
-    #     return temp_puzzle
-    # else:
-    #     return None
-    return temp_puzzle
-
 
 def fill_unique(possible_values, temp_puzzle) -> (bool, (int, int)):
     for i in range(9):
@@ -204,45 +166,3 @@ def get_possible_values(puzzle, row, col):
         #     print("Impossible puzzle")
         return number_set
     return None
-
-
-def check_solution(puzzle) -> bool:
-    """
-    Check that each row, column and 3x3 square of the sudoku puzzle has every number
-    between 1-9 once.
-    :param puzzle: List containing the lists of values of the each row.
-    :return: Return True if each row, column and 3x3 square contain each of the numbers
-    between 1-9 once. Return False otherwise
-    """
-    numbers = {1, 2, 3, 4, 5, 6, 7, 8, 9}
-    is_correct = True
-    for i in range(9):
-        # collect set of all values from the i:th row of the puzzle
-        row = set(puzzle[i])
-        # check if the row contains every number once
-        if row != numbers:
-            is_correct = False
-            break
-
-        # collect set of all values from the i:th column of the puzzle
-        col = set()
-        for j in range(9):
-            col.add(puzzle[j][i])
-        # check if the column contains every number once
-        if col != numbers:
-            is_correct = False
-            break
-
-        # collect set of all values from the 3x3 square
-        square = set()
-        for j in range(9):
-            x = i // 3
-            y = j // 3
-            for i2 in range(3 * x, 3 * x + 3):
-                for j2 in range(3 * y, 3 * y + 3):
-                    square.add(puzzle[i2][j2])
-        # check if the square contains every number once
-        if square != numbers:
-            is_correct = False
-            break
-    return is_correct

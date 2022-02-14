@@ -16,14 +16,24 @@ FONT_SIZE_INFO = 20
 w_width = 540
 w_height = 640
 
-info1 = "Esc: close || Arrows: move || S: solve"
-info2 = "Backspace/0: clear cell || Del: clear all"
-info3 = "Space: check solution"
+info1 = "C: Show controls || S: Show settings"
 
 # board settings
 width = 540
 height = 540
 cell_size = width // 9
+
+# controls
+controls = {"Select cell": "Arrow keys",
+            "Clear cell": "0 or Backspace",
+            "Clear board": "Del",
+            "Close game": "Esc",
+            "Solve": "Space",
+            "Solve visually": "V",
+            }
+
+
+
 
 # puzzles
 puzzle = [
