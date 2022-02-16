@@ -23,6 +23,14 @@ width = 540
 height = 540
 cell_size = width // 9
 
+# button settings
+btn_width = width / 2
+btn_height = (w_height - height) / 2
+btn_relief = 5
+btn_top_color = "#348ceb"
+btn_bottom_color = "#3434eb"
+
+
 # controls
 controls = {"Select cell": "Arrow keys",
             "Clear cell": "0 or Backspace",

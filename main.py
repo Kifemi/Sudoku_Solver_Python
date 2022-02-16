@@ -16,7 +16,8 @@ class Board:
         self.height = settings.height
         self.puzzle = settings.puzzle_hard
         self._current_puzzle = None
-        self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in range(9)]
+        self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in
+                      range(9)]
         self.selected_cell = (0, 0)
         self.solution = None
 
@@ -162,7 +163,7 @@ class Board:
     def update_board(self, screen):
         # self.draw_cells(screen)
         self.draw_lines(screen)
-        draw_game_info(screen)
+        # draw_game_info(screen)
         pygame.display.update()
 
     def solve_unique_values(self, func, possible_values, color):
@@ -289,7 +290,34 @@ class Cell:
                            self.cell_height * self.row + height_adjustment))
 
 
-def handle_mouse_click(board, screen) -> None:
+class Button:
+    def __init__(self, screen, text, pos):
+        self.screen = screen
+
+        self.text_font = pygame.font.SysFont("comicsans", 20)
+        self.text = self.text_font.render(str(text), True, settings.BLACK)
+        self.text_rect = self.text.get_rect()
+
+        self.pos_x, self.pos_y = pos
+        self.top_part = pygame.Rect(self.pos_x, self.pos_y, settings.btn_width,
+                                    settings.btn_height - settings.btn_relief)
+        #self.top_color = settings.btn_top_color
+        self.bottom_part = pygame.Rect(self.pos_x, self.pos_y + settings.btn_relief, settings.btn_width,
+                                       settings.btn_height - settings.btn_relief)
+        #self.bottom_color = settings.btn_bottom_color
+
+    def draw_button(self):
+        self.text_rect.center = self.top_part.center
+
+        pygame.draw.rect(self.screen, settings.btn_bottom_color, self.bottom_part, border_radius=15)
+        pygame.draw.rect(self.screen, settings.btn_top_color, self.top_part, border_radius=15)
+        self.screen.blit(self.text, self.text_rect)
+
+    def check_click(self):
+        pass
+
+
+def handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close) -> None:
     """
     Calculate which cell is clicked and select it. If the click is outside the
     board, do nothing.
@@ -304,11 +332,18 @@ def handle_mouse_click(board, screen) -> None:
         # Calculate which row and column contain the clicked cell
         row = y // settings.cell_size
         col = x // settings.cell_size
+        # Select new cell
+        board.select_cell(row, col, screen)
     # If click outside of the board, do nothing
     else:
-        return
-    # Select new cell
-    board.select_cell(row, col, screen)
+        if btn_settings.top_part.collidepoint(x, y):
+            print("Settings clicked")
+        if btn_controls.top_part.collidepoint(x, y):
+            print("Controls clicked")
+        if btn_puzzles.top_part.collidepoint(x, y):
+            print("Puzzles clicked")
+        if btn_close.top_part.collidepoint(x, y):
+            print("Close clicked")
 
 
 def handle_arrow_keys(event, board, screen) -> None:
@@ -360,6 +395,13 @@ def draw_game_info(screen):
     font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
     text1 = font.render(settings.info1, True, settings.BLACK)
     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
+
+
+def draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close):
+    btn_settings.draw_button()
+    btn_controls.draw_button()
+    btn_puzzles.draw_button()
+    btn_close.draw_button()
 
 
 def center_window(window, width, height):
@@ -422,6 +464,12 @@ def run_game():
     board = Board(screen)
     board.draw_cells(screen)
 
+    btn_settings = Button(screen, "Settings", (0, settings.height))
+    btn_controls = Button(screen, "Controls", (settings.btn_width, settings.height))
+    btn_puzzles = Button(screen, "Puzzles", (0, settings.height + settings.btn_height))
+    btn_close = Button(screen, "Close", (settings.btn_width, settings.height + settings.btn_height))
+    draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close)
+
     while run:
         clock.tick(settings.FPS)
         for event in pygame.event.get():
@@ -430,7 +478,7 @@ def run_game():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 board.clear_bg_colors()
                 if event.button == 1:
-                    handle_mouse_click(board, screen)
+                    handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close)
             if event.type == pygame.KEYDOWN:
                 board.clear_bg_colors()
                 handle_arrow_keys(event, board, screen)
@@ -455,7 +503,6 @@ if __name__ == "__main__":
     run_game()
     pygame.quit()
     print("Sudoku solver closed")
-
 
 # TODO: Add GUI for settings
 # TODO: Add GUI for controls
