@@ -2,6 +2,7 @@ import pygame
 import settings
 import copy
 import tkinter as tk
+# from tkinter import messagebox
 
 from solver import solve, is_possible, check_solution
 import solver_visual
@@ -14,7 +15,7 @@ class Board:
         self.screen = screen
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = settings.puzzle_hard
+        self.puzzle = settings.puzzle_impossible
         self._current_puzzle = None
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in
                       range(9)]
@@ -139,7 +140,7 @@ class Board:
             if check_solution(self.current_puzzle):
                 # print("Congratulations you solved the puzzle!")
                 self.update_board(self.screen)
-                show_end_screen("Congratulations! You solved the puzzle")
+                show_end_screen("Congratulations! You solved the sudoku")
         elif value == 10:
             self.current_puzzle[row][col] = 0
 
@@ -150,7 +151,7 @@ class Board:
             # print("Puzzle solved by non-visual backtracking")
         else:
             # print("Puzzle is impossible to solve")
-            show_end_screen("Puzzle is impossible to solve")
+            show_end_screen("Sudoku is impossible to solve")
             return
         for i in range(9):
             for j in range(9):
@@ -158,7 +159,7 @@ class Board:
                     self.cells[i][j].value = self.solution[i][j]
         self.draw_cells(self.screen)
         self.update_board(self.screen)
-        show_end_screen("Puzzle solved by non-visual backtracking")
+        show_end_screen("Sudoku solved by non-visual backtracking")
 
     def update_board(self, screen):
         # self.draw_cells(screen)
@@ -198,7 +199,7 @@ class Board:
                 continue
 
             if not check_solution(self.current_puzzle):
-                print("Backtracking visually....")
+                # print("Backtracking visually....")
                 solver_visual.backtracking(self, self.screen)
                 self.clear_bg_colors()
                 self.draw_cells(self.screen)
@@ -206,13 +207,14 @@ class Board:
 
             run = False
 
-        print("Closing solver")
+        # print("Closing solver")
 
         if check_solution(self.current_puzzle):
-            show_end_screen("Board solved by visual backtracking")
+            show_end_screen("Sudoku solved by visual backtracking")
             # print("Board solved by visual backtracking")
         else:
-            show_end_screen("Impossible puzzle (Visual backtracking)")
+            show_end_screen("Impossible sudoku (Visual backtracking)")
+            self.clear_cells()
             # print("Impossible puzzle (Visual backtracking)")
 
 
@@ -294,6 +296,9 @@ class Button:
     def __init__(self, screen, text, pos):
         self.screen = screen
 
+        # Colors
+        self.top_color = settings.btn_top_color
+        self.bottom_color = settings.btn_bottom_color
         self.text_font = pygame.font.SysFont("comicsans", 20)
         self.text = self.text_font.render(str(text), True, settings.BLACK)
         self.text_rect = self.text.get_rect()
@@ -301,28 +306,37 @@ class Button:
         self.pos_x, self.pos_y = pos
         self.top_part = pygame.Rect(self.pos_x, self.pos_y, settings.btn_width,
                                     settings.btn_height - settings.btn_relief)
-        #self.top_color = settings.btn_top_color
+        # self.top_color = settings.btn_top_color
         self.bottom_part = pygame.Rect(self.pos_x, self.pos_y + settings.btn_relief, settings.btn_width,
                                        settings.btn_height - settings.btn_relief)
-        #self.bottom_color = settings.btn_bottom_color
+        # self.bottom_color = settings.btn_bottom_color
 
     def draw_button(self):
         self.text_rect.center = self.top_part.center
 
-        pygame.draw.rect(self.screen, settings.btn_bottom_color, self.bottom_part, border_radius=15)
-        pygame.draw.rect(self.screen, settings.btn_top_color, self.top_part, border_radius=15)
+        pygame.draw.rect(self.screen, self.bottom_color, self.bottom_part, border_radius=15)
+        pygame.draw.rect(self.screen, self.top_color, self.top_part, border_radius=15)
         self.screen.blit(self.text, self.text_rect)
 
     def check_click(self):
-        pass
+        self.top_color = settings.btn_bottom_color
+        self.bottom_color = settings.BLACK
+        self.draw_button()
+        pygame.display.update()
+
+    def reset_click(self):
+        self.top_color = settings.btn_top_color
+        self.bottom_color = settings.btn_bottom_color
+        self.draw_button()
 
 
-def handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close) -> None:
+def handle_mouse_click(board, screen, buttons) -> None:
     """
     Calculate which cell is clicked and select it. If the click is outside the
     board, do nothing.
     :param board: `Board` class object
     :param screen: Pygame display window
+    :param buttons: List of all `Button` class objects
     :return: None
     """
     # Get mouse click coordinates
@@ -334,16 +348,21 @@ def handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, b
         col = x // settings.cell_size
         # Select new cell
         board.select_cell(row, col, screen)
-    # If click outside of the board, do nothing
-    else:
-        if btn_settings.top_part.collidepoint(x, y):
-            print("Settings clicked")
-        if btn_controls.top_part.collidepoint(x, y):
-            print("Controls clicked")
-        if btn_puzzles.top_part.collidepoint(x, y):
+    elif settings.height <= y <= settings.w_height:
+        game_settings, controls, puzzles, close = buttons
+        if game_settings.top_part.collidepoint(x, y):
+            game_settings.check_click()
+            open_settings()
+        if controls.top_part.collidepoint(x, y):
+            controls.check_click()
+            show_controls()
+        if puzzles.top_part.collidepoint(x, y):
+            puzzles.check_click()
             print("Puzzles clicked")
-        if btn_close.top_part.collidepoint(x, y):
-            print("Close clicked")
+        if close.top_part.collidepoint(x, y):
+            exit()
+        for button in buttons:
+            button.reset_click()
 
 
 def handle_arrow_keys(event, board, screen) -> None:
@@ -397,11 +416,13 @@ def draw_game_info(screen):
     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
 
 
-def draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close):
-    btn_settings.draw_button()
-    btn_controls.draw_button()
-    btn_puzzles.draw_button()
-    btn_close.draw_button()
+def draw_buttons(buttons):
+    # btn_settings.draw_button()
+    # btn_controls.draw_button()
+    # btn_puzzles.draw_button()
+    # btn_close.draw_button()
+    for button in buttons:
+        button.draw_button()
 
 
 def center_window(window, width, height):
@@ -447,11 +468,40 @@ def open_settings():
 def show_end_screen(text):
     window = tk.Tk()
     window.title("Sudoku")
-    center_window(window, 400, 50)
+    center_window(window, 400, 80)
 
-    message = tk.Label(window, text=text)
-    message.pack(fill=tk.BOTH, expand=tk.YES)
+    message = tk.Label(window, text=text, padx=20, pady=10)
+    message.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+    button = tk.Button(window, text="OK", command=lambda: window.destroy())
+    button.pack(side=tk.BOTTOM, fill=tk.NONE, expand=tk.YES)
     window.mainloop()
+
+
+def check_events(board, screen, buttons):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            board.clear_bg_colors()
+            if event.button == 1:
+                handle_mouse_click(board, screen, buttons)
+        if event.type == pygame.KEYDOWN:
+            board.clear_bg_colors()
+            handle_arrow_keys(event, board, screen)
+            handle_number_keys(event, board)
+            if event.key == pygame.K_SPACE:
+                board.show_solution(solve(board.puzzle))
+            if event.key == pygame.K_v:
+                board.solve_visually()
+            if event.key == pygame.K_DELETE:
+                board.clear_cells()
+            if event.key == pygame.K_c:
+                show_controls()
+            if event.key == pygame.K_s:
+                open_settings()
+            if event.key == pygame.K_ESCAPE:
+                return False
+    return True
 
 
 def run_game():
@@ -464,37 +514,42 @@ def run_game():
     board = Board(screen)
     board.draw_cells(screen)
 
+    # Create Buttons
     btn_settings = Button(screen, "Settings", (0, settings.height))
     btn_controls = Button(screen, "Controls", (settings.btn_width, settings.height))
     btn_puzzles = Button(screen, "Puzzles", (0, settings.height + settings.btn_height))
     btn_close = Button(screen, "Close", (settings.btn_width, settings.height + settings.btn_height))
-    draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close)
+    buttons = [btn_settings, btn_controls, btn_puzzles, btn_close]
+    # draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close)
+    draw_buttons(buttons)
 
+    # main loop
     while run:
         clock.tick(settings.FPS)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                board.clear_bg_colors()
-                if event.button == 1:
-                    handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close)
-            if event.type == pygame.KEYDOWN:
-                board.clear_bg_colors()
-                handle_arrow_keys(event, board, screen)
-                handle_number_keys(event, board)
-                if event.key == pygame.K_SPACE:
-                    board.show_solution(solve(board.puzzle))
-                if event.key == pygame.K_v:
-                    board.solve_visually()
-                if event.key == pygame.K_DELETE:
-                    board.clear_cells()
-                if event.key == pygame.K_c:
-                    show_controls()
-                if event.key == pygame.K_s:
-                    open_settings()
-                if event.key == pygame.K_ESCAPE:
-                    run = False
+        run = check_events(board, screen, buttons)
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         run = False
+        #     if event.type == pygame.MOUSEBUTTONDOWN:
+        #         board.clear_bg_colors()
+        #         if event.button == 1:
+        #             handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close)
+        #     if event.type == pygame.KEYDOWN:
+        #         board.clear_bg_colors()
+        #         handle_arrow_keys(event, board, screen)
+        #         handle_number_keys(event, board)
+        #         if event.key == pygame.K_SPACE:
+        #             board.show_solution(solve(board.puzzle))
+        #         if event.key == pygame.K_v:
+        #             board.solve_visually()
+        #         if event.key == pygame.K_DELETE:
+        #             board.clear_cells()
+        #         if event.key == pygame.K_c:
+        #             show_controls()
+        #         if event.key == pygame.K_s:
+        #             open_settings()
+        #         if event.key == pygame.K_ESCAPE:
+        #             run = False
 
         board.update_board(screen)
 
