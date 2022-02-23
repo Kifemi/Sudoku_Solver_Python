@@ -2,8 +2,9 @@ import pygame
 import settings
 import copy
 import tkinter as tk
-# from tkinter import messagebox
+import sqlite3
 
+import puzzles_db
 from solver import solve, is_possible, check_solution
 import solver_visual
 
@@ -15,7 +16,7 @@ class Board:
         self.screen = screen
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = settings.puzzle_impossible
+        self.puzzle = puzzles_db.load_puzzle()
         self._current_puzzle = None
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in
                       range(9)]
@@ -387,7 +388,7 @@ def handle_arrow_keys(event, board, screen) -> None:
     board.select_cell(row, col, screen)
 
 
-def handle_number_keys(event, board):
+def handle_number_keys(event, board) -> None:
     if event.key == pygame.K_1:
         board.change_value(1)
     if event.key == pygame.K_2:
@@ -410,13 +411,13 @@ def handle_number_keys(event, board):
         board.change_value(10)
 
 
-def draw_game_info(screen):
+def draw_game_info(screen) -> None:
     font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
     text1 = font.render(settings.info1, True, settings.BLACK)
     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
 
 
-def draw_buttons(buttons):
+def draw_buttons(buttons) -> None:
     # btn_settings.draw_button()
     # btn_controls.draw_button()
     # btn_puzzles.draw_button()
@@ -425,7 +426,7 @@ def draw_buttons(buttons):
         button.draw_button()
 
 
-def center_window(window, width, height):
+def center_window(window, width, height) -> None:
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
 
@@ -455,7 +456,7 @@ def show_controls() -> None:
     window.mainloop()
 
 
-def open_settings():
+def open_settings() -> None:
     window = tk.Tk()
     window.title("Settings")
     center_window(window, 400, 400)
@@ -465,7 +466,11 @@ def open_settings():
     window.mainloop()
 
 
-def show_end_screen(text):
+def open_puzzles_db() -> None:
+    pass
+
+
+def show_end_screen(text) -> None:
     window = tk.Tk()
     window.title("Sudoku")
     center_window(window, 400, 80)
@@ -477,7 +482,7 @@ def show_end_screen(text):
     window.mainloop()
 
 
-def check_events(board, screen, buttons):
+def check_events(board, screen, buttons) -> bool:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
@@ -520,43 +525,20 @@ def run_game():
     btn_puzzles = Button(screen, "Puzzles", (0, settings.height + settings.btn_height))
     btn_close = Button(screen, "Close", (settings.btn_width, settings.height + settings.btn_height))
     buttons = [btn_settings, btn_controls, btn_puzzles, btn_close]
-    # draw_buttons(btn_settings, btn_controls, btn_puzzles, btn_close)
     draw_buttons(buttons)
 
     # main loop
     while run:
         clock.tick(settings.FPS)
         run = check_events(board, screen, buttons)
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT:
-        #         run = False
-        #     if event.type == pygame.MOUSEBUTTONDOWN:
-        #         board.clear_bg_colors()
-        #         if event.button == 1:
-        #             handle_mouse_click(board, screen, btn_settings, btn_controls, btn_puzzles, btn_close)
-        #     if event.type == pygame.KEYDOWN:
-        #         board.clear_bg_colors()
-        #         handle_arrow_keys(event, board, screen)
-        #         handle_number_keys(event, board)
-        #         if event.key == pygame.K_SPACE:
-        #             board.show_solution(solve(board.puzzle))
-        #         if event.key == pygame.K_v:
-        #             board.solve_visually()
-        #         if event.key == pygame.K_DELETE:
-        #             board.clear_cells()
-        #         if event.key == pygame.K_c:
-        #             show_controls()
-        #         if event.key == pygame.K_s:
-        #             open_settings()
-        #         if event.key == pygame.K_ESCAPE:
-        #             run = False
-
         board.update_board(screen)
 
 
 if __name__ == "__main__":
+    puzzles_db.initialize_db()
     run_game()
     pygame.quit()
+    puzzles_db.close_db()
     print("Sudoku solver closed")
 
 # TODO: Add GUI for settings

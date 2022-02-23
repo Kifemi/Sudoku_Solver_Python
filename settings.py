@@ -44,7 +44,7 @@ controls = {"Select cell": "Arrow keys",
 
 
 # puzzles
-puzzle = [
+puzzle_normal = [
     [0, 0, 0, 0, 8, 0, 0, 0, 0],
     [0, 0, 0, 5, 0, 0, 0, 1, 3],
     [6, 0, 0, 0, 0, 0, 8, 5, 7],
@@ -80,7 +80,7 @@ puzzle_hard = [
     [0, 6, 0, 5, 0, 0, 0, 0, 0],
 ]
 
-empty = [[0 for _ in range(9)] for _ in range(9)]
+puzzle_empty = [[0 for _ in range(9)] for _ in range(9)]
 
 puzzle_impossible = [
     [0, 0, 0, 0, 8, 0, 0, 0, 8],
