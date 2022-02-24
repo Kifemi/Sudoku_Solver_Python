@@ -34,5 +34,10 @@ def load_puzzle():
     return pickle.loads(puzzle.fetchone()[0])
 
 
+def load_puzzles():
+    puzzles = db_conn.execute("SELECT * FROM puzzles")
+    return puzzles
+
+
 def close_db():
     db_conn.close()

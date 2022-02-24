@@ -1,14 +1,16 @@
+import os
+
 import pygame
 import settings
 import copy
-import tkinter as tk
-import sqlite3
+try:
+    import tkinter as tk
+except ImportError:  # python 2
+    import Tkinter as tk
 
 import puzzles_db
 from solver import solve, is_possible, check_solution
 import solver_visual
-
-pygame.font.init()
 
 
 class Board:
@@ -360,6 +362,7 @@ def handle_mouse_click(board, screen, buttons) -> None:
         if puzzles.top_part.collidepoint(x, y):
             puzzles.check_click()
             print("Puzzles clicked")
+            open_puzzles_db()
         if close.top_part.collidepoint(x, y):
             exit()
         for button in buttons:
@@ -411,10 +414,10 @@ def handle_number_keys(event, board) -> None:
         board.change_value(10)
 
 
-def draw_game_info(screen) -> None:
-    font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
-    text1 = font.render(settings.info1, True, settings.BLACK)
-    screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
+# def draw_game_info(screen) -> None:
+#     font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
+#     text1 = font.render(settings.info1, True, settings.BLACK)
+#     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
 
 
 def draw_buttons(buttons) -> None:
@@ -426,7 +429,7 @@ def draw_buttons(buttons) -> None:
         button.draw_button()
 
 
-def center_window(window, width, height) -> None:
+def center_tk_window(window, width, height) -> None:
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
 
@@ -436,6 +439,24 @@ def center_window(window, width, height) -> None:
     window.geometry("%dx%d+%d+%d" % (width, height, window_x, window_y))
 
 
+def center_pygame_window(screen_info) -> tuple:
+    window_x = (screen_info.current_w - settings.w_width) // 2
+    window_y = (screen_info.current_h - settings.w_height) // 2
+
+    return window_x, window_y
+
+
+def locate_puzzle_list(window):
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+
+    window_x = (screen_width + settings.w_width) / 2
+    window_y = (screen_height - settings.p_height) / 2 - 30
+
+    return settings.p_width, settings.p_height, window_x, window_y
+    # window.geometry("%dx%d+%d+%d" % (settings.p_width, settings.p_height, window_x, window_y))
+
+
 def show_controls() -> None:
     """
     Open a Tkinter window where all the control buttons are displayed
@@ -443,7 +464,7 @@ def show_controls() -> None:
     """
     window = tk.Tk()
     window.title("Controls")
-    center_window(window, 200, 150)
+    center_tk_window(window, 200, 150)
     controls_image = tk.PhotoImage(file="settings.png")
     window.iconphoto(True, controls_image)
 
@@ -459,7 +480,7 @@ def show_controls() -> None:
 def open_settings() -> None:
     window = tk.Tk()
     window.title("Settings")
-    center_window(window, 400, 400)
+    center_tk_window(window, 400, 400)
     settings_image = tk.PhotoImage(file="settings.png")
     window.iconphoto(True, settings_image)
 
@@ -467,13 +488,36 @@ def open_settings() -> None:
 
 
 def open_puzzles_db() -> None:
-    pass
+    window = tk.Tk()
+    window.title("Settings")
+    window.geometry("%dx%d+%d+%d" % locate_puzzle_list(window))
+    settings_image = tk.PhotoImage(file="settings.png")
+    window.iconphoto(True, settings_image)
+
+    window.columnconfigure(0, weight=2)
+
+    window.rowconfigure(0, weight=0)
+    window.rowconfigure(1, weight=5)
+
+    tk.Label(window, text="Puzzles").grid(row=0, column=0)
+
+    listLV = tk.Variable(window)
+    listLV.set(("Choose Puzzle",))
+    listbox = tk.Listbox(window, listvariable=listLV)
+    listbox.grid(row=1, column=0, sticky="nsew", padx=(30, 30))
+    listbox.config(border=2, relief="sunken")
+
+    scrollbar = tk.Scrollbar(window, orient=tk.VERTICAL, command=listbox.yview)
+    scrollbar.grid(row=1, column=0, sticky="nse", padx=(0, 30))
+    listbox["yscrollcommand"] = scrollbar.set
+    listLV.set(tuple(range(1, 100)))
+    window.mainloop()
 
 
 def show_end_screen(text) -> None:
     window = tk.Tk()
     window.title("Sudoku")
-    center_window(window, 400, 80)
+    center_tk_window(window, 400, 80)
 
     message = tk.Label(window, text=text, padx=20, pady=10)
     message.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
@@ -510,8 +554,11 @@ def check_events(board, screen, buttons) -> bool:
 
 
 def run_game():
+    screen_info = pygame.display.Info()
+    os.environ["SDL_VIDEO_WINDOW_POS"] = "%d, %d" % center_pygame_window(screen_info)
     screen = pygame.display.set_mode((settings.w_width, settings.w_height))
     pygame.display.set_caption("Sudoku Solver")
+
     screen.fill(settings.WHITE)
     clock = pygame.time.Clock()
     run = True
@@ -535,6 +582,8 @@ def run_game():
 
 
 if __name__ == "__main__":
+    pygame.init()
+    pygame.font.init()
     puzzles_db.initialize_db()
     run_game()
     pygame.quit()

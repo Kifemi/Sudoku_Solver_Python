@@ -16,7 +16,7 @@ FONT_SIZE_INFO = 20
 w_width = 540
 w_height = 640
 
-info1 = "C: Show controls || S: Show settings"
+# info1 = "C: Show controls || S: Show settings"
 
 # board settings
 width = 540
@@ -29,6 +29,10 @@ btn_height = (w_height - height) / 2
 btn_relief = 5
 btn_top_color = "#348ceb"
 btn_bottom_color = "#3434eb"
+
+# puzzle list settings
+p_width = 400
+p_height = w_height
 
 
 # controls
