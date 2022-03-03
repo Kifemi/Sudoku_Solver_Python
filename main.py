@@ -18,7 +18,7 @@ class Board:
         self.screen = screen
         self.width = settings.width
         self.height = settings.height
-        self.puzzle = puzzles_db.load_puzzle()
+        self.puzzle = puzzles_db.load_puzzle(1)
         self._current_puzzle = None
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in
                       range(9)]
@@ -117,7 +117,7 @@ class Board:
                     self.cells[row][col].show_error = True
                     self.cells[row][col].draw_cell(self.screen)
 
-    def clear_cells(self) -> None:
+    def clear_cells(self, clear_initials=False) -> None:
         """
         Clear every cell except the ones with initial values.
         :return: None
@@ -127,6 +127,9 @@ class Board:
             for j in range(9):
                 if not self.cells[i][j].has_initial_value:
                     self.cells[i][j].value = 0
+                elif clear_initials:
+                    self.cells[i][j].value = 0
+                    self.cells[i][j].has_initial_value = False
                     # self.cells[i][j].draw_cell(self.screen)
 
     def clear_bg_colors(self):
@@ -230,6 +233,7 @@ class Cell:
         self.cell_width = width // 9
         self.cell_height = height // 9
         self.has_initial_value = True if self.value else False
+
         # Attributes affecting to background color
         self.is_selected = False
         self.show_error = False
@@ -362,7 +366,19 @@ def handle_mouse_click(board, screen, buttons) -> None:
         if puzzles.top_part.collidepoint(x, y):
             puzzles.check_click()
             print("Puzzles clicked")
-            open_puzzles_db()
+            puzzle_id = open_puzzles_db()
+            if puzzle_id is not None:
+                new_puzzle = puzzles_db.load_puzzle(puzzle_id)
+                board.puzzle = new_puzzle
+                board.current_puzzle = board.puzzle
+                board.clear_cells(clear_initials=True)
+                for i in range(9):
+                    for j in range(9):
+                        if board.puzzle[i][j]:
+                            board.cells[i][j].has_initial_value = True
+                        board.cells[i][j].value = board.puzzle[i][j]
+                board.solution = None
+                board.update_board(screen)
         if close.top_part.collidepoint(x, y):
             exit()
         for button in buttons:
@@ -414,17 +430,7 @@ def handle_number_keys(event, board) -> None:
         board.change_value(10)
 
 
-# def draw_game_info(screen) -> None:
-#     font = pygame.font.SysFont("Comicsans", settings.FONT_SIZE_INFO)
-#     text1 = font.render(settings.info1, True, settings.BLACK)
-#     screen.blit(text1, ((settings.w_width - text1.get_width()) / 2, settings.height))
-
-
 def draw_buttons(buttons) -> None:
-    # btn_settings.draw_button()
-    # btn_controls.draw_button()
-    # btn_puzzles.draw_button()
-    # btn_close.draw_button()
     for button in buttons:
         button.draw_button()
 
@@ -487,7 +493,22 @@ def open_settings() -> None:
     window.mainloop()
 
 
-def open_puzzles_db() -> None:
+def open_puzzles_db():
+    def on_select(event):
+        nonlocal _selected_puzzle
+        if listbox.curselection()[0] >= 0:
+            _selected_puzzle = listbox.curselection()[0] + 1
+
+    def load():
+        nonlocal _selected_puzzle, window, return_value
+        if _selected_puzzle is None:
+            pass
+        else:
+            return_value = _selected_puzzle
+            window.destroy()
+
+    return_value = None
+    _selected_puzzle = None
     window = tk.Tk()
     window.title("Settings")
     window.geometry("%dx%d+%d+%d" % locate_puzzle_list(window))
@@ -498,20 +519,28 @@ def open_puzzles_db() -> None:
 
     window.rowconfigure(0, weight=0)
     window.rowconfigure(1, weight=5)
+    window.rowconfigure(2, weight=1)
 
     tk.Label(window, text="Puzzles").grid(row=0, column=0)
 
-    listLV = tk.Variable(window)
-    listLV.set(("Choose Puzzle",))
-    listbox = tk.Listbox(window, listvariable=listLV)
+    listbox = tk.Listbox(window)
     listbox.grid(row=1, column=0, sticky="nsew", padx=(30, 30))
     listbox.config(border=2, relief="sunken")
 
     scrollbar = tk.Scrollbar(window, orient=tk.VERTICAL, command=listbox.yview)
     scrollbar.grid(row=1, column=0, sticky="nse", padx=(0, 30))
     listbox["yscrollcommand"] = scrollbar.set
-    listLV.set(tuple(range(1, 100)))
+    listbox.bind("<<ListboxSelect>>", on_select)
+
+    load_btn = tk.Button(window, text="Load", command=load)
+    load_btn.grid(row=2)
+    load_btn.config(border=2)
+
+    for puzzle in puzzles_db.load_puzzles():
+        listbox.insert(tk.END, puzzle[0])
+
     window.mainloop()
+    return return_value if return_value else None
 
 
 def show_end_screen(text) -> None:

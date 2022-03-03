@@ -1,5 +1,6 @@
 import sqlite3
-import pickle
+# import pickle
+import json
 import settings
 import datetime
 import pytz
@@ -10,14 +11,14 @@ db_conn = sqlite3.connect("puzzles_db.sqlite", detect_types=sqlite3.PARSE_DECLTY
 
 def initialize_db():
     db_conn.execute("CREATE TABLE IF NOT EXISTS puzzles (_id INTEGER PRIMARY KEY, name TEXT NOT NULL,"
-                    " puzzle INTEGER NOT NULL, time TIMESTAMP NOT NULL)")
-    preset_puzzles = {"easy": pickle.dumps(settings.puzzle_easy),
-                      "normal": pickle.dumps(settings.puzzle_normal),
-                      "hard": pickle.dumps(settings.puzzle_hard),
-                      "very hard": pickle.dumps(settings.puzzle_very_hard),
-                      "empty": pickle.dumps(settings.puzzle_empty),
-                      "impossible": pickle.dumps(settings.puzzle_impossible),
-                      "anti backtracking": pickle.dumps(settings.puzzle_anti_backtracking),
+                    " puzzle TEXT NOT NULL, time TIMESTAMP NOT NULL)")
+    preset_puzzles = {"easy": json.dumps(settings.puzzle_easy),
+                      "normal": json.dumps(settings.puzzle_normal),
+                      "hard": json.dumps(settings.puzzle_hard),
+                      "very hard": json.dumps(settings.puzzle_very_hard),
+                      "empty": json.dumps(settings.puzzle_empty),
+                      "impossible": json.dumps(settings.puzzle_impossible),
+                      "anti backtracking": json.dumps(settings.puzzle_anti_backtracking),
                       }
 
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
@@ -29,13 +30,13 @@ def initialize_db():
     db_conn.commit()
 
 
-def load_puzzle():
-    puzzle = db_conn.execute("SELECT puzzle FROM puzzles WHERE name = ?", ("easy",))
-    return pickle.loads(puzzle.fetchone()[0])
+def load_puzzle(id):
+    puzzle = db_conn.execute("SELECT puzzle FROM puzzles WHERE _id = ?", (id,))
+    return json.loads(puzzle.fetchone()[0])
 
 
 def load_puzzles():
-    puzzles = db_conn.execute("SELECT * FROM puzzles")
+    puzzles = db_conn.execute("SELECT name FROM puzzles")
     return puzzles
 
 
