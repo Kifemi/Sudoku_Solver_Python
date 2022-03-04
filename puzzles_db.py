@@ -1,5 +1,4 @@
 import sqlite3
-# import pickle
 import json
 import settings
 import datetime

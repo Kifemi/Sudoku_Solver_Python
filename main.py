@@ -23,7 +23,6 @@ class Board:
         self.cells = [[Cell(self.puzzle[i][j], i, j, self.width, self.height, self.screen) for j in range(9)] for i in
                       range(9)]
         self.selected_cell = (0, 0)
-        self.solution = None
 
         # Initializing values
         self.cells[0][0].is_selected = True
@@ -37,6 +36,31 @@ class Board:
     @current_puzzle.setter
     def current_puzzle(self, puzzle):
         self._current_puzzle = copy.deepcopy(puzzle)
+
+    def load_puzzle(self, puzzle=None, solution=None, clear_initials=False) -> None:
+        """
+        Initializes the starting position of a puzzle. If new puzzle is provided, load it and if no puzzle is provided
+        load the current puzzle's starting position. If solution is given as an argument, load the solved board.
+        :param puzzle: Starting position of the puzzle.
+        :param solution: Solution for a current sudoku.
+        :param clear_initials: True or False depending does the sudoku need completely be cleared.
+        :return: None
+        """
+        # TODO: both puzzle and solution are None?
+        # TODO: is clear initials required? solution is enough?
+        if puzzle:
+            self.puzzle = puzzle
+        self.current_puzzle = self.puzzle
+        self.clear_cells(clear_initials=clear_initials)
+        for i in range(9):
+            for j in range(9):
+                if self.puzzle[i][j]:
+                    self.cells[i][j].has_initial_value = True
+                if solution is None:
+                    self.cells[i][j].value = self.puzzle[i][j]
+                else:
+                    self.cells[i][j].value = solution[i][j]
+        self.update_board(self.screen)
 
     def draw_lines(self, screen) -> None:
         """
@@ -111,7 +135,6 @@ class Board:
                 # the value to zero (clear the cell).
                 self.cells[row][col].value = value
                 self.update_value(value, row, col)
-                # self.cells[row][col].draw_cell(self.screen)
             else:
                 for row, col in errors:
                     self.cells[row][col].show_error = True
@@ -130,7 +153,6 @@ class Board:
                 elif clear_initials:
                     self.cells[i][j].value = 0
                     self.cells[i][j].has_initial_value = False
-                    # self.cells[i][j].draw_cell(self.screen)
 
     def clear_bg_colors(self):
         for i in range(9):
@@ -144,27 +166,27 @@ class Board:
         if 0 < value < 10:
             self.current_puzzle[row][col] = value
             if check_solution(self.current_puzzle):
-                # print("Congratulations you solved the puzzle!")
                 self.update_board(self.screen)
                 show_end_screen("Congratulations! You solved the sudoku")
         elif value == 10:
             self.current_puzzle[row][col] = 0
 
     def show_solution(self, solution):
-        if solution is not None:
-            self.solution = solution
-            self.current_puzzle = self.solution
-            # print("Puzzle solved by non-visual backtracking")
-        else:
-            # print("Puzzle is impossible to solve")
+        if solution is None:
             show_end_screen("Sudoku is impossible to solve")
             return
-        for i in range(9):
-            for j in range(9):
-                if not self.cells[i][j].has_initial_value:
-                    self.cells[i][j].value = self.solution[i][j]
-        self.draw_cells(self.screen)
-        self.update_board(self.screen)
+        self.load_puzzle(solution=solution)
+        # if solution is not None:
+        #     self.current_puzzle = solution
+        # else:
+        #     show_end_screen("Sudoku is impossible to solve")
+        #     return
+        # for i in range(9):
+        #     for j in range(9):
+        #         if not self.cells[i][j].has_initial_value:
+        #             self.cells[i][j].value = solution[i][j]
+        # # self.draw_cells(self.screen)
+        # self.update_board(self.screen)
         show_end_screen("Sudoku solved by non-visual backtracking")
 
     def update_board(self, screen):
@@ -181,7 +203,6 @@ class Board:
             self.cells[cell[0]][cell[1]].value = self.current_puzzle[cell[0]][cell[1]]
             color[2] -= 3
             color[0] += 2
-            # self.cells[cell[0]][cell[1]].draw_cell(self.screen)
         else:
             value_found = False
         self.update_board(self.screen)
@@ -205,7 +226,6 @@ class Board:
                 continue
 
             if not check_solution(self.current_puzzle):
-                # print("Backtracking visually....")
                 solver_visual.backtracking(self, self.screen)
                 self.clear_bg_colors()
                 self.draw_cells(self.screen)
@@ -213,15 +233,11 @@ class Board:
 
             run = False
 
-        # print("Closing solver")
-
         if check_solution(self.current_puzzle):
             show_end_screen("Sudoku solved by visual backtracking")
-            # print("Board solved by visual backtracking")
         else:
             show_end_screen("Impossible sudoku (Visual backtracking)")
             self.clear_cells()
-            # print("Impossible puzzle (Visual backtracking)")
 
 
 class Cell:
@@ -365,20 +381,10 @@ def handle_mouse_click(board, screen, buttons) -> None:
             show_controls()
         if puzzles.top_part.collidepoint(x, y):
             puzzles.check_click()
-            print("Puzzles clicked")
             puzzle_id = open_puzzles_db()
             if puzzle_id is not None:
                 new_puzzle = puzzles_db.load_puzzle(puzzle_id)
-                board.puzzle = new_puzzle
-                board.current_puzzle = board.puzzle
-                board.clear_cells(clear_initials=True)
-                for i in range(9):
-                    for j in range(9):
-                        if board.puzzle[i][j]:
-                            board.cells[i][j].has_initial_value = True
-                        board.cells[i][j].value = board.puzzle[i][j]
-                board.solution = None
-                board.update_board(screen)
+                board.load_puzzle(puzzle=new_puzzle, clear_initials=True)
         if close.top_part.collidepoint(x, y):
             exit()
         for button in buttons:

@@ -87,7 +87,7 @@ def backtracking(board, screen) -> bool:
             board.cells[row][col].backtracking_correct = True
             board.cells[row][col].value = k
             board.update_board(screen)
-            pygame.time.delay(50)
+            # pygame.time.delay(50)
             if backtracking(board, screen):
                 return True
             # print(f"row2: {row}, col2: {col}")
@@ -95,7 +95,7 @@ def backtracking(board, screen) -> bool:
             board.cells[row][col].backtracking_incorrect = True
             board.cells[row][col].backtracking_correct = False
             board.cells[row][col].value = 0
-            pygame.time.delay(50)
+            # pygame.time.delay(50)
 
             board.update_board(screen)
 
