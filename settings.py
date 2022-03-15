@@ -14,9 +14,7 @@ FONT_SIZE_INFO = 20
 
 # window settings
 w_width = 540
-w_height = 640
-
-# info1 = "C: Show controls || S: Show settings"
+w_height = 690
 
 # board settings
 width = 540
@@ -25,7 +23,7 @@ cell_size = width // 9
 
 # button settings
 btn_width = width / 2
-btn_height = (w_height - height) / 2
+btn_height = (w_height - height) / 3
 btn_relief = 5
 btn_top_color = "#348ceb"
 btn_bottom_color = "#3434eb"
@@ -33,7 +31,6 @@ btn_bottom_color = "#3434eb"
 # puzzle list settings
 p_width = 400
 p_height = w_height
-
 
 # controls
 controls = {"Select cell": "Arrow keys",
@@ -43,9 +40,6 @@ controls = {"Select cell": "Arrow keys",
             "Solve": "Space",
             "Solve visually": "V",
             }
-
-
-
 
 # puzzles
 puzzle_normal = [

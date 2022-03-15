@@ -143,6 +143,7 @@ class Board:
     def clear_cells(self, clear_initials=False) -> None:
         """
         Clear every cell except the ones with initial values.
+        :param clear_initials: Determine if the initial values are cleared.
         :return: None
         """
         self.current_puzzle = self.puzzle
@@ -372,20 +373,24 @@ def handle_mouse_click(board, screen, buttons) -> None:
         # Select new cell
         board.select_cell(row, col, screen)
     elif settings.height <= y <= settings.w_height:
-        game_settings, controls, puzzles, close = buttons
+        game_settings, controls, create, save, puzzles, close = buttons
         if game_settings.top_part.collidepoint(x, y):
             game_settings.check_click()
             open_settings()
-        if controls.top_part.collidepoint(x, y):
+        elif controls.top_part.collidepoint(x, y):
             controls.check_click()
             show_controls()
-        if puzzles.top_part.collidepoint(x, y):
+        elif create.top_part.collidepoint(x, y):
+            setup_puzzle(board)
+        elif save.top_part.collidepoint(x, y):
+            save_puzzle(board)
+        elif puzzles.top_part.collidepoint(x, y):
             puzzles.check_click()
             puzzle_id = open_puzzles_db()
             if puzzle_id is not None:
                 new_puzzle = puzzles_db.load_puzzle(puzzle_id)
                 board.load_puzzle(puzzle=new_puzzle, clear_initials=True)
-        if close.top_part.collidepoint(x, y):
+        elif close.top_part.collidepoint(x, y):
             exit()
         for button in buttons:
             button.reset_click()
@@ -467,6 +472,15 @@ def locate_puzzle_list(window):
 
     return settings.p_width, settings.p_height, window_x, window_y
     # window.geometry("%dx%d+%d+%d" % (settings.p_width, settings.p_height, window_x, window_y))
+
+
+def setup_puzzle(board) -> None:
+    board.puzzle = [[0 for _ in range(9)] for _ in range(9)]
+    board.clear_cells(clear_initials=True)
+
+
+def save_puzzle(board) -> None:
+    board.load_puzzle(puzzle=board.current_puzzle)
 
 
 def show_controls() -> None:
@@ -604,9 +618,11 @@ def run_game():
     # Create Buttons
     btn_settings = Button(screen, "Settings", (0, settings.height))
     btn_controls = Button(screen, "Controls", (settings.btn_width, settings.height))
-    btn_puzzles = Button(screen, "Puzzles", (0, settings.height + settings.btn_height))
-    btn_close = Button(screen, "Close", (settings.btn_width, settings.height + settings.btn_height))
-    buttons = [btn_settings, btn_controls, btn_puzzles, btn_close]
+    btn_create = Button(screen, "Create", (0, settings.height + settings.btn_height))
+    btn_save = Button(screen, "Save", (settings.btn_width, settings.height + settings.btn_height))
+    btn_puzzles = Button(screen, "Puzzles", (0, settings.height + settings.btn_height * 2))
+    btn_close = Button(screen, "Close", (settings.btn_width, settings.height + settings.btn_height * 2))
+    buttons = [btn_settings, btn_controls, btn_create, btn_save, btn_puzzles, btn_close]
     draw_buttons(buttons)
 
     # main loop
