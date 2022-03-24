@@ -27,6 +27,8 @@ btn_height = (w_height - height) / 3
 btn_relief = 5
 btn_top_color = "#348ceb"
 btn_bottom_color = "#3434eb"
+btn_top_disabled = "#a1a1a1"
+btn_bottom_disabled = "#6e6e6e"
 
 # puzzle list settings
 p_width = 400

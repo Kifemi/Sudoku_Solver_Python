@@ -50,7 +50,7 @@ class Board:
         # TODO: is clear initials required? solution is enough?
         if puzzle:
             self.puzzle = puzzle
-        self.current_puzzle = self.puzzle
+            self.current_puzzle = self.puzzle
         self.clear_cells(clear_initials=clear_initials)
         for i in range(9):
             for j in range(9):
@@ -60,6 +60,8 @@ class Board:
                     self.cells[i][j].value = self.puzzle[i][j]
                 else:
                     self.cells[i][j].value = solution[i][j]
+        if solution:
+            self.current_puzzle = solution
         self.update_board(self.screen)
 
     def draw_lines(self, screen) -> None:
@@ -177,17 +179,6 @@ class Board:
             show_end_screen("Sudoku is impossible to solve")
             return
         self.load_puzzle(solution=solution)
-        # if solution is not None:
-        #     self.current_puzzle = solution
-        # else:
-        #     show_end_screen("Sudoku is impossible to solve")
-        #     return
-        # for i in range(9):
-        #     for j in range(9):
-        #         if not self.cells[i][j].has_initial_value:
-        #             self.cells[i][j].value = solution[i][j]
-        # # self.draw_cells(self.screen)
-        # self.update_board(self.screen)
         show_end_screen("Sudoku solved by non-visual backtracking")
 
     def update_board(self, screen):
@@ -323,24 +314,32 @@ class Button:
         # Colors
         self.top_color = settings.btn_top_color
         self.bottom_color = settings.btn_bottom_color
+        # Text
+        self.text = text
         self.text_font = pygame.font.SysFont("comicsans", 20)
-        self.text = self.text_font.render(str(text), True, settings.BLACK)
-        self.text_rect = self.text.get_rect()
-
+        self.text_render = self.text_font.render(str(self.text), True, settings.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        # Location
         self.pos_x, self.pos_y = pos
         self.top_part = pygame.Rect(self.pos_x, self.pos_y, settings.btn_width,
                                     settings.btn_height - settings.btn_relief)
-        # self.top_color = settings.btn_top_color
         self.bottom_part = pygame.Rect(self.pos_x, self.pos_y + settings.btn_relief, settings.btn_width,
                                        settings.btn_height - settings.btn_relief)
-        # self.bottom_color = settings.btn_bottom_color
+        # Disabled
+        # TODO: No effect yet
+        if self.text != "Save":
+            self.is_disabled = False
+        else:
+            self.is_disabled = True
 
     def draw_button(self):
         self.text_rect.center = self.top_part.center
-
+        if self.is_disabled:
+            self.top_color = settings.btn_top_disabled
+            self.bottom_color = settings.btn_bottom_disabled
         pygame.draw.rect(self.screen, self.bottom_color, self.bottom_part, border_radius=15)
         pygame.draw.rect(self.screen, self.top_color, self.top_part, border_radius=15)
-        self.screen.blit(self.text, self.text_rect)
+        self.screen.blit(self.text_render, self.text_rect)
 
     def check_click(self):
         self.top_color = settings.btn_bottom_color
@@ -383,6 +382,7 @@ def handle_mouse_click(board, screen, buttons) -> None:
         elif create.top_part.collidepoint(x, y):
             setup_puzzle(board)
         elif save.top_part.collidepoint(x, y):
+            # if not save.is_disabled:
             save_puzzle(board)
         elif puzzles.top_part.collidepoint(x, y):
             puzzles.check_click()
@@ -480,7 +480,36 @@ def setup_puzzle(board) -> None:
 
 
 def save_puzzle(board) -> None:
-    board.load_puzzle(puzzle=board.current_puzzle)
+    def save():
+        nonlocal name
+        name = entry.get()
+        nonlocal saving
+        saving = True
+        window.destroy()
+
+    def close():
+        window.destroy()
+
+    saving = False
+    name = None
+
+    window = tk.Tk()
+    window.title("Save puzzle")
+    center_tk_window(window, 250, 50)
+    entry = tk.Entry(window, width=20)
+    save_btn = tk.Button(window, text="Save", command=save)
+    close_btn = tk.Button(window, text="Close", command=close)
+    entry.insert(0, "Name")
+
+    entry.pack(pady=2)
+    # TODO: fix button placement
+    save_btn.pack(pady=2, padx=58, side=tk.LEFT)
+    close_btn.pack(pady=2, side=tk.LEFT)
+    window.mainloop()
+
+    if saving:
+        puzzles_db.add_puzzle(name, board.current_puzzle)
+        board.load_puzzle(puzzle=board.current_puzzle)
 
 
 def show_controls() -> None:
@@ -640,7 +669,3 @@ if __name__ == "__main__":
     pygame.quit()
     puzzles_db.close_db()
     print("Sudoku solver closed")
-
-# TODO: Add GUI for settings
-# TODO: Add GUI for controls
-# TODO: Database for saving the puzzles

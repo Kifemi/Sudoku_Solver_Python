@@ -39,5 +39,14 @@ def load_puzzles():
     return puzzles
 
 
+def add_puzzle(name, puzzle):
+    insert_stmt = ("INSERT INTO puzzles (name, puzzle, time) SELECT ?, ?, ?"
+                   " WHERE NOT EXISTS (SELECT 1 FROM puzzles WHERE name = ?)")
+    current_time = pytz.utc.localize(datetime.datetime.utcnow())
+    value = json.dumps(puzzle)
+    db_conn.execute(insert_stmt, (name, value, current_time, name))
+    db_conn.commit()
+    # TODO: check if row exists
+
 def close_db():
     db_conn.close()
