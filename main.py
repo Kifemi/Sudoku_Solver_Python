@@ -5,8 +5,10 @@ import settings
 import copy
 try:
     import tkinter as tk
+    from tkinter import messagebox
 except ImportError:  # python 2
     import Tkinter as tk
+    from Tkinter import messagebox
 
 import puzzles_db
 from solver import solve, is_possible, check_solution
@@ -482,10 +484,15 @@ def setup_puzzle(board) -> None:
 def save_puzzle(board) -> None:
     def save():
         nonlocal name
-        name = entry.get()
+        name = entry.get().strip()
         nonlocal saving
-        saving = True
-        window.destroy()
+
+        if not name:
+            messagebox.showwarning(title="Warning!", message="Invalid name")
+            entry.delete(0, tk.END)
+        else:
+            saving = True
+            window.destroy()
 
     def close():
         window.destroy()
@@ -508,8 +515,11 @@ def save_puzzle(board) -> None:
     window.mainloop()
 
     if saving:
-        puzzles_db.add_puzzle(name, board.current_puzzle)
-        board.load_puzzle(puzzle=board.current_puzzle)
+        if puzzles_db.check_name(name):
+            puzzles_db.add_puzzle(name, board.current_puzzle)
+            board.load_puzzle(puzzle=board.current_puzzle)
+        else:
+            messagebox.showwarning("Name is already taken")
 
 
 def show_controls() -> None:

@@ -19,7 +19,6 @@ def initialize_db():
                       "impossible": json.dumps(settings.puzzle_impossible),
                       "anti backtracking": json.dumps(settings.puzzle_anti_backtracking),
                       }
-
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
     insert_stmt = ("INSERT INTO puzzles (name, puzzle, time) SELECT ?, ?, ?"
                    " WHERE NOT EXISTS (SELECT 1 FROM puzzles WHERE name = ?)")
@@ -39,14 +38,21 @@ def load_puzzles():
     return puzzles
 
 
+def check_name(name):
+    get_names = ("SELECT name FROM puzzles WHERE name = ?")
+    names = db_conn.execute(get_names, (name,)).fetchone()
+    return False if names else True
+
+
 def add_puzzle(name, puzzle):
     insert_stmt = ("INSERT INTO puzzles (name, puzzle, time) SELECT ?, ?, ?"
                    " WHERE NOT EXISTS (SELECT 1 FROM puzzles WHERE name = ?)")
+
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
     value = json.dumps(puzzle)
     db_conn.execute(insert_stmt, (name, value, current_time, name))
     db_conn.commit()
-    # TODO: check if row exists
+
 
 def close_db():
     db_conn.close()
